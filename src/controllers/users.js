@@ -2,8 +2,12 @@ const { response } = require('express');
 const bcrypt = require('bcryptjs');
 const Users = require('../models/users');
 const { generarJWT } = require('../helpers/jwt');
+const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const { sendPasswordResetEmail, sendAccessCredentialsForEmail } = require('../helpers/sendEmail');
+const { generateAndUploadQR } = require('../helpers/qr');
+const { saveFileToCloudinary } = require('../helpers/saveFiles');
+
 
 const getUser = async (req, res = response) => {
     try {
@@ -11,8 +15,6 @@ const getUser = async (req, res = response) => {
         const { user_id } = req.params;
 
         const usuario = await Users.findById(user_id).populate('rol');
-
-        console.log(usuario)
 
         if (!usuario) {
             return res.status(404).json({
@@ -43,15 +45,12 @@ const createUser = async (req, res = response) => {
             telefonoUsuario,
             contrasena,
             direccion,
-            fotoUsuario,
-            qrUsuario,
             edadUsuario,
             rol
         } = req.body;
 
-        // Verifica si el usuario ya existe con ese correo
+        // Verificar si ya existe
         const usuarioExistente = await Users.findOne({ status: true, correo });
-
         if (usuarioExistente) {
             return res.status(409).json({
                 ok: false,
@@ -59,10 +58,11 @@ const createUser = async (req, res = response) => {
             });
         }
 
-        // Crea una nueva instancia de usuario
+        // Encriptar contraseña
         const salt = bcrypt.genSaltSync();
         const hashedPassword = bcrypt.hashSync(contrasena, salt);
 
+        // Crear usuario base
         const nuevoUsuario = new Users({
             nombreUsuario,
             apellidosUsuario,
@@ -70,20 +70,33 @@ const createUser = async (req, res = response) => {
             telefonoUsuario,
             contrasena: hashedPassword,
             direccion,
-            fotoUsuario,
-            qrUsuario,
             edadUsuario,
             rol,
-            status: true
+            status: true,
         });
 
         const usuarioGuardado = await nuevoUsuario.save();
-        //Enivar datos de acceso
-        if (usuarioGuardado) {
-            await sendAccessCredentialsForEmail(correo, nombreUsuario, contrasena)
+
+        // 1. Subir foto si se envió
+        if (req.files && req.files.fotoUsuario) {
+            const file = req.files.fotoUsuario;
+            const imageUrl = await saveFileToCloudinary(file.tempFilePath, 'user_photos', usuarioGuardado._id.toString());
+            usuarioGuardado.fotoUsuario = imageUrl;
+        } else {
+            usuarioGuardado.fotoUsuario = "";
         }
 
-        // Generar JWT
+        // 2. Generar y subir QR
+        const urlQR = await generateAndUploadQR(usuarioGuardado._id.toString());
+        usuarioGuardado.qrUsuario = urlQR;
+
+        // Guardar cambios
+        await usuarioGuardado.save();
+
+        // 3. Enviar credenciales por correo
+        await sendAccessCredentialsForEmail(correo, nombreUsuario, contrasena, urlQR);
+
+        // 4. Generar JWT
         const token = await generarJWT(usuarioGuardado._id, usuarioGuardado.nombreUsuario);
 
         return res.status(201).json({
@@ -346,7 +359,7 @@ const resetPassword = async (req, res = response) => {
     const { token, nuevaContrasena } = req.body;
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.SECRET_JWT_SEED);
 
         if (!decoded.reset) {
             return res.status(400).json({
@@ -376,9 +389,52 @@ const resetPassword = async (req, res = response) => {
         console.error('Error al restablecer contraseña:', error);
         return res.status(400).json({
             ok: false,
-            msg: 'Token inválido o expirado'
+            msg: 'Token inválido o expirado, es necesario solicitar nuevamente '
         });
     }
+};
+
+const sendRedirectToApp = async (req, res = response) => {
+    const { token } = req.params;
+    const deepLink = `combigegogym://forgetpassword/${token}`;
+
+    res.send(`
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Redirección hacia App BIG EGO GYM...</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <style>
+          body {
+            width:90%;
+            height:100vh;
+            display:flex;
+            flex-direction:column;
+            justify-content:flex-start;
+            margin-top:50px;
+            align-items:center;
+            font-family: Arial, sans-serif;
+            text-align: center;
+          }
+          a {
+            font-size: 18px;
+            color: blue;
+          }
+        </style>
+      </head>
+      <body>
+        <h2>Abriendo la app...</h2>
+        <p>Si no se abre automáticamente, toca el botón de abajo:</p>
+        <a href="${deepLink}">Abrir App</a>
+
+        <script>
+          setTimeout(() => {
+            window.location.href = "${deepLink}";
+          }, 100);
+        </script>
+      </body>
+    </html>
+  `);
 };
 
 module.exports = {
@@ -389,5 +445,6 @@ module.exports = {
     deleteUser,
     getUser,
     sendPasswordReset,
+    sendRedirectToApp,
     resetPassword
 }

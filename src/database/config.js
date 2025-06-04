@@ -2,15 +2,12 @@ const mongoose = require('mongoose');
 
 const dbConnection = async () => {
     try {
-        await mongoose.connect(process.env.DB_CNN, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        await mongoose.connect(process.env.DB_CNN); // Opciones innecesarias en Mongoose 6+
 
-        console.log('DB en línea');
+        console.log('✅ DB en línea');
     } catch (error) {
-        console.error(error);
-        throw new Error('Error a la hora de inicializar la BD');
+        console.error('❌ Error de conexión a MongoDB:', error.message);
+        throw new Error('Error al inicializar la BD');
     }
 };
 

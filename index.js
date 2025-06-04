@@ -8,7 +8,6 @@ const cors = require('cors');
 const fileUpload = require('express-fileupload');
 const morgan = require('morgan');
 
-
 const { dbConnection } = require('./src/database/config');
 const { createRoles, createUsers } = require('./src/libs/initialDB');
 
@@ -46,7 +45,6 @@ app.get('/', (req, res) => {
 })
 
 app.use('/api/users', require('./src/routes/users.routes'));
-
 
 app.use(express.static(path.join(__dirname, './public')));
 

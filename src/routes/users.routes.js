@@ -8,6 +8,7 @@ const {
   deleteUser,
   getUser,
   sendPasswordReset,
+  sendRedirectToApp,
   resetPassword
 } = require('../controllers/users');
 const { validarJWT } = require('../middlewares/validar-jwt');
@@ -27,5 +28,9 @@ router.put('/delete/:user_id', deleteUser);
 router.put('/update/:user_id', updateUser);
 
 router.post('/forgotpassword', sendPasswordReset);
+
+router.get('/redirectpassword/:token', sendRedirectToApp);
+
+router.post('/resetPassword', resetPassword);
 
 module.exports = router;
