@@ -9,11 +9,12 @@ const fileUpload = require('express-fileupload');
 const morgan = require('morgan');
 
 const { dbConnection } = require('./src/database/config');
-const { createRoles, createUsers } = require('./src/libs/initialDB');
+const { createRoles, createUsers, createSubscription } = require('./src/libs/initialDB');
 
 
 // createRoles();
 // createUsers();
+// createSubscription()
 
 // Base de datos
 dbConnection();
@@ -37,7 +38,6 @@ app.use(morgan('dev'));
 app.use(express.json());
 
 
-
 // Rutas
 //Página de inicio
 app.get('/', (req, res) => {
@@ -45,6 +45,10 @@ app.get('/', (req, res) => {
 })
 
 app.use('/api/users', require('./src/routes/users.routes'));
+
+app.use('/api/rol', require('./src/routes/role.routes'));
+
+app.use('/api/subscription', require('./src/routes/subscription.routes'));
 
 app.use(express.static(path.join(__dirname, './public')));
 

@@ -25,7 +25,7 @@ const createRole = async (req, res = response) => {
 const getRoles = async (req, res = response) => {
     try {
 
-        const rolesFound = await Role.find().populate('permits');
+        const rolesFound = await Role.find();
 
         if (rolesFound === 0) {
             return res.status(404).json({
@@ -35,8 +35,6 @@ const getRoles = async (req, res = response) => {
         } else {
             return res.status(200).json(rolesFound)
         }
-
-
 
     } catch (error) {
         console.error(error);

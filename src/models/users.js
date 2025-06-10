@@ -48,10 +48,26 @@ const usersSchema = Schema({
         ref: "role",
         require: true
     },
+    subscription:
+    {
+        type: Schema.Types.ObjectId,
+        ref: "subscription",
+        require: false
+    },
     creationDate: {
         type: Date,
         defaultValue: new Date(),
         require: true
+    },
+    membershipStart: {
+        type: Date,
+        defaultValue: new Date(),
+        require: false
+    },
+    membershipEnd: {
+        type: Date,
+        defaultValue: new Date(),
+        require: false
     },
     status:
     {

@@ -9,11 +9,14 @@ const {
   getUser,
   sendPasswordReset,
   sendRedirectToApp,
-  resetPassword
+  resetPassword,
+  getUsers
 } = require('../controllers/users');
 const { validarJWT } = require('../middlewares/validar-jwt');
 
 const router = Router();
+
+router.get('/', getUsers);
 
 router.get('/:user_id', getUser);
 

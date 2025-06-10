@@ -8,13 +8,35 @@ const { sendPasswordResetEmail, sendAccessCredentialsForEmail } = require('../he
 const { generateAndUploadQR } = require('../helpers/qr');
 const { saveFileToCloudinary } = require('../helpers/saveFiles');
 
+const getUsers = async (req, res = response) => {
+    try {
+        const usuarios = await Users.find({
+            status: true
+        }).populate('rol').populate('subscription');
+
+        if (!usuarios) {
+            return res.status(404).json({
+                ok: false,
+                message: 'Usuarios no encontrados'
+            })
+        } else {
+            return res.status(200).json(usuarios);
+        }
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            ok: false,
+            msg: 'Un error fue detectado, por favor habla con el administrador'
+        })
+    }
+}
 
 const getUser = async (req, res = response) => {
     try {
-
         const { user_id } = req.params;
 
-        const usuario = await Users.findById(user_id).populate('rol');
+        const usuario = await Users.findById(user_id).populate('rol').populate('subscription');
 
         if (!usuario) {
             return res.status(404).json({
@@ -83,7 +105,7 @@ const createUser = async (req, res = response) => {
             const imageUrl = await saveFileToCloudinary(file.tempFilePath, 'user_photos', usuarioGuardado._id.toString());
             usuarioGuardado.fotoUsuario = imageUrl;
         } else {
-            usuarioGuardado.fotoUsuario = "";
+            usuarioGuardado.fotoUsuario = "https://cdn-icons-png.flaticon.com/512/4792/4792929.png";
         }
 
         // 2. Generar y subir QR
@@ -117,50 +139,75 @@ const createUser = async (req, res = response) => {
     }
 };
 
-
 const updateUser = async (req, res = response) => {
-
-    const { uid } = req.params;
+    const { user_id } = req.params;
+    const {
+        nombreUsuario,
+        apellidosUsuario,
+        correo,
+        telefonoUsuario,
+        direccion
+    } = req.body;
 
     try {
+        // Clonamos el body y eliminamos el campo fotoUsuario si viene como objeto
+        const dataToUpdate = { ...req.body };
+        if (dataToUpdate.fotoUsuario && typeof dataToUpdate.fotoUsuario === 'object') {
+            delete dataToUpdate.fotoUsuario;
+        }
 
-        const updatedUser = await Users.findByIdAndUpdate(
-            uid,
-            req.body,
-            {
-                new: true,
-            }
-        );
-
+        // Primero actualizamos los datos normales (sin la foto)
+        let updatedUser = await Users.findByIdAndUpdate(user_id, {
+            nombreUsuario,
+            apellidosUsuario,
+            correo,
+            telefonoUsuario,
+            direccion
+        }, {
+            new: true,
+            runValidators: true,
+        });
 
         if (!updatedUser) {
             return res.status(404).json({
                 ok: false,
-                msg: 'Usuario no encontrado'
-            })
-        }
-        else {
-            return res.status(200).json({
-                ok: true,
-                msg: 'Usuario fue actualizado correctamente'
+                msg: 'Usuario no encontrado',
             });
         }
 
+        // Si viene archivo (desde un form con file)
+        if (req.files && req.files.fotoUsuario) {
+            const file = req.files.fotoUsuario;
+            const imageUrl = await saveFileToCloudinary(
+                file.tempFilePath,
+                'user_photos',
+                updatedUser._id.toString()
+            );
+
+            updatedUser.fotoUsuario = imageUrl;
+            await updatedUser.save(); // Guardamos con la nueva URL de la imagen
+        }
+
+        return res.status(200).json({
+            ok: true,
+            msg: 'Usuario actualizado correctamente',
+            user: updatedUser,
+        });
 
     } catch (error) {
-        console.log(error);
+        console.error(error);
         return res.status(500).json({
             ok: false,
-            msg: 'Un error fue detectado, por favor habla con el administrador'
-        })
+            msg: 'Error del servidor, habla con el administrador',
+        });
     }
-}
+};
 
 const loginUser = async (req, res = response) => {
     try {
         const { correo, contrasena } = req.body;
 
-        const usuario = await Users.findOne({ correo }).populate('rol');
+        const usuario = await Users.findOne({ correo }).populate('rol').populate('subscription');
 
         if (!usuario) {
             return res.status(404).json({
@@ -216,67 +263,62 @@ const loginUser = async (req, res = response) => {
 
 
 const revalidateToken = async (req, res = response) => {
-    const { uid } = req;
-
     try {
-        const usuario = await Users.findById(uid).populate('rol');
+        const { uid } = req;
+
+        if (!uid) {
+            return res.status(400).json({
+                ok: false,
+                msg: 'UID no proporcionado en la solicitud'
+            });
+        }
+
+        const usuario = await Users.findById(uid).populate('rol').populate('subscription');
 
         if (!usuario) {
             return res.status(404).json({
                 ok: false,
-                msg: 'No existe un usuario con ese correo'
+                msg: 'No existe un usuario con ese UID'
             });
         }
 
         if (!usuario.status) {
             return res.status(403).json({
                 ok: false,
-                msg: 'Este usuario fue eliminado o está inactivo. Contacta a un administrador.'
+                msg: 'El usuario está inactivo o fue eliminado. Contacta al administrador.'
             });
         }
 
-        const {
-            _id,
-            nombreUsuario,
-            correo,
-            rol,
-            apellidosUsuario,
-            telefonoUsuario,
-            direccion,
-            fotoUsuario,
-            qrUsuario,
-            edadUsuario,
-            status
-        } = usuario;
+        const token = await generarJWT(uid, usuario.nombreUsuario);
 
-        // Generar JWT
-        const token = await generarJWT(uid, nombreUsuario);
+        const usuarioData = {
+            uid: usuario._id,
+            nombreUsuario: usuario.nombreUsuario,
+            apellidosUsuario: usuario.apellidosUsuario,
+            correo: usuario.correo,
+            telefonoUsuario: usuario.telefonoUsuario,
+            direccion: usuario.direccion,
+            fotoUsuario: usuario.fotoUsuario,
+            qrUsuario: usuario.qrUsuario,
+            edadUsuario: usuario.edadUsuario,
+            status: usuario.status,
+            rol: usuario.rol
+        };
 
-        res.status(200).json({
+        return res.status(200).json({
             ok: true,
-            uid: _id,
-            nombreUsuario,
-            correo,
-            rol,
-            apellidosUsuario,
-            telefonoUsuario,
-            direccion,
-            fotoUsuario,
-            qrUsuario,
-            edadUsuario,
-            status,
+            usuario: usuarioData,
             token
-        })
+        });
 
     } catch (error) {
-        console.log(error);
-        res.status(500).json({
+        console.error('Error al revalidar token:', error);
+        return res.status(500).json({
             ok: false,
-            msg: 'Un error fue detectado, por favor habla con el administrador'
+            msg: 'Error interno del servidor. Por favor, contacta al administrador.'
         });
     }
-}
-
+};
 
 
 
@@ -446,5 +488,6 @@ module.exports = {
     getUser,
     sendPasswordReset,
     sendRedirectToApp,
-    resetPassword
+    resetPassword,
+    getUsers
 }

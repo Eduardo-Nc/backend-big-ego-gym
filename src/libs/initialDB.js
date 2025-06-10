@@ -1,5 +1,6 @@
 const Role = require('../models/role');
 const Users = require('../models/users');
+const Subscription = require('../models/subscription');
 
 const createRoles = async () => {
   try {
@@ -64,9 +65,26 @@ const createUsers = async () => {
   }
 };
 
+const createSubscription = async () => {
+  try {
+
+    const count = await Subscription.estimatedDocumentCount();
+
+    if (count > 0) return;
+
+    const values = await Promise.all([
+      new Subscription({ name: "Visita", typeSubscription: "Día", price: 40, status: true }).save()
+    ]);
+
+    console.log(values);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
 
 module.exports = {
   createRoles,
-  createUsers
+  createUsers,
+  createSubscription
 };
