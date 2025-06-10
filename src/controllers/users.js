@@ -146,7 +146,8 @@ const updateUser = async (req, res = response) => {
         apellidosUsuario,
         correo,
         telefonoUsuario,
-        direccion
+        direccion,
+        rol
     } = req.body;
 
     try {
@@ -162,7 +163,8 @@ const updateUser = async (req, res = response) => {
             apellidosUsuario,
             correo,
             telefonoUsuario,
-            direccion
+            direccion,
+            rol
         }, {
             new: true,
             runValidators: true,
