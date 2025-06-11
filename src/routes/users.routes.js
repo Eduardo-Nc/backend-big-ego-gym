@@ -10,7 +10,8 @@ const {
   sendPasswordReset,
   sendRedirectToApp,
   resetPassword,
-  getUsers
+  getUsers,
+  getByEmployee
 } = require('../controllers/users');
 const { validarJWT } = require('../middlewares/validar-jwt');
 
@@ -19,6 +20,8 @@ const router = Router();
 router.get('/', getUsers);
 
 router.get('/:user_id', getUser);
+
+router.get('/getByEmployee/:id', getByEmployee);
 
 router.post('/new', createUser);
 

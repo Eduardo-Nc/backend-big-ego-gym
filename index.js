@@ -54,6 +54,8 @@ app.use('/api/products', require('./src/routes/products.routes'));
 
 app.use('/api/bills', require('./src/routes/bills.routes'));
 
+app.use('/api/tasks', require('./src/routes/task.routes'));
+
 app.use(express.static(path.join(__dirname, './public')));
 
 app.use(express.static(path.join(__dirname, './src/facturas')));

@@ -3,10 +3,13 @@ const bcrypt = require('bcryptjs');
 const Users = require('../models/users');
 const { generarJWT } = require('../helpers/jwt');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
 const { sendPasswordResetEmail, sendAccessCredentialsForEmail } = require('../helpers/sendEmail');
 const { generateAndUploadQR } = require('../helpers/qr');
 const { saveFileToCloudinary } = require('../helpers/saveFiles');
+
+const mongoose = require("mongoose");
+const ObjectId = mongoose.Types.ObjectId;
+
 
 const getUsers = async (req, res = response) => {
     try {
@@ -57,6 +60,32 @@ const getUser = async (req, res = response) => {
 
 }
 
+const getByEmployee = async (req, res = response) => {
+    const { id } = req.params;
+
+    try {
+        const empleados = await Users.find({
+            rol: new ObjectId(id),
+            status: true
+        }).populate('rol').populate('subscription');
+
+        if (!empleados || empleados.length === 0) {
+            return res.status(404).json({
+                ok: false,
+                message: 'No se encontraron empleados'
+            });
+        }
+
+        return res.status(200).json(empleados);
+
+    } catch (error) {
+        console.log(error);
+        res.status(500).json({
+            ok: false,
+            msg: 'Un error fue detectado, por favor habla con el administrador'
+        });
+    }
+};
 
 const createUser = async (req, res = response) => {
     try {
@@ -491,5 +520,6 @@ module.exports = {
     sendPasswordReset,
     sendRedirectToApp,
     resetPassword,
-    getUsers
+    getUsers,
+    getByEmployee
 }
