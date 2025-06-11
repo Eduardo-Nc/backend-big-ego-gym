@@ -45,7 +45,7 @@ const getSubscription = async (req, res = response) => {
 
 const updatedSubscription = async (req, res = response) => {
     const { id } = req.params;
-    const { name, typeSubscription, price } = req.body;
+    const { name, typeSubscription, price, category } = req.body;
 
     try {
 
@@ -54,7 +54,8 @@ const updatedSubscription = async (req, res = response) => {
             {
                 name,
                 typeSubscription,
-                price
+                price,
+                category
             },
             {
                 new: true,
@@ -79,10 +80,6 @@ const updatedSubscription = async (req, res = response) => {
         })
     }
 }
-
-
-
-
 
 const deactivateSubscription = async (req, res = response) => {
 

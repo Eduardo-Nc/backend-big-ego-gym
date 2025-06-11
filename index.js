@@ -50,6 +50,8 @@ app.use('/api/rol', require('./src/routes/role.routes'));
 
 app.use('/api/subscription', require('./src/routes/subscription.routes'));
 
+app.use('/api/products', require('./src/routes/products.routes'));
+
 app.use(express.static(path.join(__dirname, './public')));
 
 app.use(express.static(path.join(__dirname, './src/facturas')));

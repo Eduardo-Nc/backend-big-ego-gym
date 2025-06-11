@@ -10,6 +10,11 @@ const subscriptionSchema = new Schema({
     enum: ['Día', 'Semana', 'Mes'],
     required: true,
   },
+  category: {
+    type: String,
+    enum: ['membership'],
+    required: true,
+  },
   price: {
     type: Number,
     required: true,

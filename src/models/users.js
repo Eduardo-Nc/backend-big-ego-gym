@@ -32,11 +32,11 @@ const usersSchema = Schema({
     },
     fotoUsuario: {
         type: String,
-        require: true
+        require: false
     },
     qrUsuario: {
         type: String,
-        require: true
+        require: false
     },
     edadUsuario: {
         type: Date,
