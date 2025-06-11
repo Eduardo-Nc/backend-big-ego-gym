@@ -10,7 +10,7 @@ const getTasks = async (req, res = response) => {
     if (!resTask || resTask.length === 0) {
       return res.status(404).json({
         ok: false,
-        message: 'Tareas no encontradas'
+        msg: 'Tareas no encontradas'
       });
     }
 

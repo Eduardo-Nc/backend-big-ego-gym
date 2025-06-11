@@ -13,7 +13,7 @@ const getProducts = async (req, res = response) => {
     if (!resProduct) {
       return res.status(404).json({
         ok: false,
-        message: 'Productos no encontrados'
+        msg: 'Productos no encontrados'
       })
     } else {
       return res.status(200).json(resProduct);

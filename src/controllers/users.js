@@ -20,7 +20,7 @@ const getUsers = async (req, res = response) => {
         if (!usuarios) {
             return res.status(404).json({
                 ok: false,
-                message: 'Usuarios no encontrados'
+                msg: 'Usuarios no encontrados'
             })
         } else {
             return res.status(200).json(usuarios);

@@ -28,7 +28,7 @@ const getSubscription = async (req, res = response) => {
         if (!resSub) {
             return res.status(404).json({
                 ok: false,
-                message: 'No se encontraron membresías'
+                msg: 'No se encontraron membresías'
             })
         } else {
             return res.status(200).json(resSub);

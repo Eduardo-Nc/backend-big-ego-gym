@@ -1,19 +1,19 @@
 const { response } = require('express');
-const Bill = require('../models/bills');
+const Inventory = require('../models/inventory');
 
-const getBills = async (req, res = response) => {
+const getInventorys = async (req, res = response) => {
   try {
-    const resBills = await Bill.find({
+    const resInventory = await Inventory.find({
       status: true
     });
 
-    if (!resBills) {
+    if (!resInventory) {
       return res.status(404).json({
         ok: false,
-        msg: 'Gastos no encontrados'
+        msg: 'Inventario vacio'
       })
     } else {
-      return res.status(200).json(resBills);
+      return res.status(200).json(resInventory);
     }
 
   } catch (error) {
@@ -25,31 +25,33 @@ const getBills = async (req, res = response) => {
   }
 }
 
-const createBill = async (req, res = response) => {
+const createInventory = async (req, res = response) => {
   try {
     const {
-      amount,
-      quantity,
-      description,
       name,
-      typePay
+      type,
+      quantity,
+      condition,
+      price,
+      brand
     } = req.body;
 
-    // Crear Bill base
-    const nuevoGasto = new Bill({
-      amount: parseFloat(amount),
-      quantity: parseFloat(quantity),
-      description,
+    // Crear Inventory base
+    const resInventory = new Inventory({
       name,
-      typePay: typePay ? "Efectivo" : "Transferencia",
+      type,
+      quantity: parseFloat(quantity),
+      condition: parseFloat(condition),
+      price,
+      brand,
       status: true,
     });
 
-    await nuevoGasto.save();
+    await resInventory.save();
 
     return res.status(201).json({
       ok: true,
-      msg: 'Gasto creado correctamente',
+      msg: 'Artículo creado correctamente',
     });
 
   } catch (error) {
@@ -61,43 +63,45 @@ const createBill = async (req, res = response) => {
   }
 };
 
-const updateBill = async (req, res = response) => {
+const updateInventory = async (req, res = response) => {
   const { id } = req.params;
   const {
-    amount,
-    quantity,
-    description,
     name,
-    typePay
+    type,
+    quantity,
+    condition,
+    price,
+    brand
   } = req.body;
 
   try {
 
     // Primero actualizamos los datos normales (sin la foto)
-    let resBills = await Bill.findByIdAndUpdate(id, {
-      amount: parseFloat(amount),
-      quantity: parseFloat(quantity),
-      description,
+    let resInventory = await Inventory.findByIdAndUpdate(id, {
       name,
-      typePay: typePay ? "Efectivo" : "Transferencia",
+      type,
+      quantity: parseFloat(quantity),
+      condition: parseFloat(condition),
+      price,
+      brand,
     }, {
       new: true,
       runValidators: true,
     });
 
-    if (!resBills) {
+    if (!resInventory) {
       return res.status(404).json({
         ok: false,
-        msg: 'Gasto no encontrado',
+        msg: 'Artículo no encontrado',
       });
     }
 
-    await resBills.save();
+    await resInventory.save();
 
     return res.status(200).json({
       ok: true,
-      msg: 'Gasto actualizado correctamente',
-      user: resBills,
+      msg: 'Artículo actualizado correctamente',
+      user: resInventory,
     });
 
   } catch (error) {
@@ -110,13 +114,13 @@ const updateBill = async (req, res = response) => {
 };
 
 
-const deleteBill = async (req, res = response) => {
+const deleteInventory = async (req, res = response) => {
 
   const { id } = req.params;
 
   try {
 
-    const resBills = await Bill.findByIdAndUpdate(
+    const resInventory = await Inventory.findByIdAndUpdate(
       id,
       { status: false },
       {
@@ -125,17 +129,17 @@ const deleteBill = async (req, res = response) => {
     );
 
 
-    if (!resBills) {
+    if (!resInventory) {
       return res.status(404).json({
         ok: false,
-        msg: 'Gasto no encontrado'
+        msg: 'Artículo no encontrado'
       })
     }
     else {
 
       return res.status(200).json({
         ok: true,
-        msg: 'Gasto fue eliminado correctamente'
+        msg: 'Artículo fue eliminado correctamente'
       });
     }
 
@@ -150,8 +154,8 @@ const deleteBill = async (req, res = response) => {
 
 
 module.exports = {
-  getBills,
-  createBill,
-  updateBill,
-  deleteBill
+  getInventorys,
+  createInventory,
+  updateInventory,
+  deleteInventory
 }
