@@ -1,6 +1,7 @@
 const { response } = require('express');
 const bcrypt = require('bcryptjs');
 const Product = require('../models/products');
+const Subscription = require("../models/subscription");
 const { generarJWT } = require('../helpers/jwt');
 const { saveFileToCloudinary } = require('../helpers/saveFiles');
 
@@ -191,12 +192,53 @@ const deleteProduct = async (req, res = response) => {
 }
 
 
+const getAllProducts = async (req, res = response) => {
+  try {
+    // 1. Obtener productos
+    const products = await Product.find().lean();
+    // 2. Obtener membresías
+    const memberships = await Subscription.find().lean();
 
+    // 3. Normalizar formato
+    const formattedProducts = products.map(p => ({
+      id: p._id,
+      name: p.name,
+      category: 'products',
+      price: p.price,
+      stock: p.stock,
+      description: p.description,
+      image_url: p.image_url,
+    }));
+
+    const formattedMemberships = memberships.map(m => ({
+      id: m._id,
+      name: m.name,
+      category: 'membership',
+      price: m.price,
+      stock: null,
+      description: "",
+      image_url: ""
+    }));
+
+    // 4. Combinar todo
+    const allItems = [...formattedProducts, ...formattedMemberships];
+
+    res.status(200).json(allItems);
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      ok: false,
+      msg: 'Un error fue detectado, por favor habla con el administrador'
+    })
+  }
+}
 
 
 module.exports = {
   getProducts,
   createProduct,
   updateProduct,
-  deleteProduct
+  deleteProduct,
+  getAllProducts
 }
