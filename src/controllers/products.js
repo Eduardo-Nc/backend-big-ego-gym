@@ -1,8 +1,6 @@
 const { response } = require('express');
-const bcrypt = require('bcryptjs');
 const Product = require('../models/products');
 const Subscription = require("../models/subscription");
-const { generarJWT } = require('../helpers/jwt');
 const { saveFileToCloudinary } = require('../helpers/saveFiles');
 
 const getProducts = async (req, res = response) => {

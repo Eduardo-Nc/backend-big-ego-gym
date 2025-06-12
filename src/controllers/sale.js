@@ -1,6 +1,8 @@
 const { response } = require('express');
 const Sale = require('../models/sale');
 const Product = require('../models/products');
+const Users = require('../models/users');
+const Subscription = require("../models/subscription");
 
 const getSales = async (req, res = response) => {
   try {
@@ -39,26 +41,70 @@ const createSale = async (req, res = response) => {
       seller
     } = req.body;
 
-    // 1. Validar y actualizar stock de productos
-    for (const saleItem of items) {
-      if (saleItem.itemType === 'products') {
-        const product = await Product.findById(saleItem.item).session(session);
+    const buyerUser = await Users.findById(buyer).session(session);
+    if (!buyerUser) {
+      throw new Error('Usuario comprador no encontrado');
+    }
 
-        if (!product) {
-          throw new Error(`Producto con ID ${saleItem.item} no encontrado`);
-        }
+    // Iterar sobre cada ítem para validar y actualizar lo necesario
+    for (const saleItem of items) {
+      if (saleItem.itemType === 'Product') {
+        const product = await Product.findById(saleItem.item).session(session);
+        if (!product) throw new Error(`Producto con ID ${saleItem.item} no encontrado`);
 
         if (product.stock < saleItem.quantity) {
-          throw new Error(`Stock insuficiente para el producto "${product.name}". Stock actual: ${product.stock}, solicitado: ${saleItem.quantity}`);
+          throw new Error(`Stock insuficiente para el producto "${product.name}". Disponible: ${product.stock}`);
         }
 
-        // Actualizar stock
+        // Descontar stock
         product.stock -= saleItem.quantity;
         await product.save({ session });
       }
+
+      if (saleItem.itemType === 'membership') {
+        const now = new Date();
+
+        const hasActiveMembership =
+          buyerUser.subscription &&
+          buyerUser.membershipEnd &&
+          new Date(buyerUser.membershipEnd) > now;
+
+        if (hasActiveMembership) {
+          throw new Error('El usuario ya tiene una membresía activa. No puede comprar otra hasta que expire.');
+        }
+
+        const subscription = await Subscription.findById(saleItem.item).session(session);
+        if (!subscription) {
+          throw new Error('La suscripción indicada no existe');
+        }
+
+        // Duraciones según typeSubscription
+        const durations = {
+          diaria: 1,
+          semanal: 7,
+          quincenal: 15,
+          mensual: 30,
+          anual: 365
+        };
+
+        const durationDays = durations[subscription.typeSubscription.toLowerCase()];
+        if (!durationDays) {
+          throw new Error(`Tipo de suscripción no válido: ${subscription.typeSubscription}`);
+        }
+
+        // Calcular fecha final
+        const membershipEnd = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+        // Actualizar usuario
+        buyerUser.subscription = subscription._id;
+        buyerUser.membershipStart = now;
+        buyerUser.membershipEnd = membershipEnd;
+
+        await buyerUser.save({ session });
+      }
     }
 
-    // 2. Crear venta
+    // Guardar venta
     const resSale = new Sale({
       items,
       total: parseFloat(total),
@@ -70,7 +116,6 @@ const createSale = async (req, res = response) => {
 
     await resSale.save({ session });
 
-    // 3. Confirmar transacción
     await session.commitTransaction();
     session.endSession();
 

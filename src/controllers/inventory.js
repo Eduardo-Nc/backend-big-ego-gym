@@ -1,4 +1,5 @@
 const { response } = require('express');
+const { saveFileToCloudinary } = require('../helpers/saveFiles');
 const Inventory = require('../models/inventory');
 
 const getInventorys = async (req, res = response) => {
@@ -36,26 +37,47 @@ const createInventory = async (req, res = response) => {
       brand
     } = req.body;
 
+    // Verificar si ya existe
+    const artExistente = await Inventory.findOne({ status: true, name: name });
+    if (artExistente) {
+      return res.status(409).json({
+        ok: false,
+        msg: 'El artículo ya se encuentra registrado'
+      });
+    }
+
     // Crear Inventory base
-    const resInventory = new Inventory({
+    const nuevoArt = new Inventory({
       name,
       type,
       quantity: parseFloat(quantity),
-      condition: parseFloat(condition),
-      price,
+      condition,
+      price: parseFloat(price),
       brand,
       status: true,
     });
 
-    await resInventory.save();
+    const artGuardado = await nuevoArt.save();
+
+    // Subir foto si se envió
+    if (req.files && req.files.image_url) {
+      const file = req.files.image_url;
+      const imageUrl = await saveFileToCloudinary(file.tempFilePath, 'art_photos', artGuardado._id.toString());
+      artGuardado.image_url = imageUrl;
+    } else {
+      artGuardado.image_url = "";
+    }
+
+    // Guardar cambios
+    await artGuardado.save();
 
     return res.status(201).json({
       ok: true,
-      msg: 'Artículo creado correctamente',
+      msg: 'Articulo creado correctamente',
     });
 
   } catch (error) {
-    console.error('Error al crear gasto:', error);
+    console.error('Error al crear artículo:', error);
     return res.status(500).json({
       ok: false,
       msg: 'Error del servidor. Por favor, contacta al administrador.'
@@ -75,33 +97,49 @@ const updateInventory = async (req, res = response) => {
   } = req.body;
 
   try {
+    // Clonamos el body y eliminamos el campo image_url si viene como objeto
+    const dataToUpdate = { ...req.body };
+    if (dataToUpdate.image_url && typeof dataToUpdate.image_url === 'object') {
+      delete dataToUpdate.image_url;
+    }
 
     // Primero actualizamos los datos normales (sin la foto)
-    let resInventory = await Inventory.findByIdAndUpdate(id, {
+    let resArt = await Inventory.findByIdAndUpdate(id, {
       name,
       type,
       quantity: parseFloat(quantity),
-      condition: parseFloat(condition),
-      price,
+      condition,
+      price: parseFloat(price),
       brand,
     }, {
       new: true,
       runValidators: true,
     });
 
-    if (!resInventory) {
+    if (!resArt) {
       return res.status(404).json({
         ok: false,
         msg: 'Artículo no encontrado',
       });
     }
 
-    await resInventory.save();
+    // Si viene archivo (desde un form con file)
+    if (req.files && req.files.image_url) {
+      const file = req.files.image_url;
+      const imageUrl = await saveFileToCloudinary(
+        file.tempFilePath,
+        'art_photos',
+        resArt._id.toString()
+      );
+
+      resArt.image_url = imageUrl;
+      await resArt.save(); // Guardamos con la nueva URL de la imagen
+    }
 
     return res.status(200).json({
       ok: true,
       msg: 'Artículo actualizado correctamente',
-      user: resInventory,
+      art: resArt,
     });
 
   } catch (error) {

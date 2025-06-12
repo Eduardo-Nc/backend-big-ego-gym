@@ -6,11 +6,11 @@ const InventorySchema = new Schema({
         required: true,
         trim: true,
     },
-    type: {
-        type: String,
-        required: true,
-        enum: ['Máquina', 'Banco', 'Pesas', 'Accesorio', 'Otro'],
-    },
+    // type: {
+    //     type: String,
+    //     required: true,
+    //     enum: ['Máquina', 'Banco', 'Pesas', 'Accesorio', 'Otro'],
+    // },
     quantity: {
         type: Number,
         required: true,
@@ -18,8 +18,7 @@ const InventorySchema = new Schema({
     },
     condition: {
         type: String,
-        enum: ['Nuevo', 'Usado', 'Reparado'],
-        default: 'Nuevo',
+        required: true
     },
     price: {
         type: Number,
@@ -29,6 +28,10 @@ const InventorySchema = new Schema({
     brand: {
         type: String,
         trim: true,
+    },
+    image_url: {
+        type: String,
+        required: false
     },
     status: {
         type: Boolean,
