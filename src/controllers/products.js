@@ -106,8 +106,8 @@ const updateProduct = async (req, res = response) => {
     // Primero actualizamos los datos normales (sin la foto)
     let resProduct = await Product.findByIdAndUpdate(id, {
       category,
-      price,
-      stock,
+      price: parseFloat(price),
+      stock: parseFloat(stock),
       description,
       name,
     }, {

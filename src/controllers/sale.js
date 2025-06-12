@@ -48,7 +48,7 @@ const createSale = async (req, res = response) => {
 
     // Iterar sobre cada ítem para validar y actualizar lo necesario
     for (const saleItem of items) {
-      if (saleItem.itemType === 'Product') {
+      if (saleItem.itemType === 'products') {
         const product = await Product.findById(saleItem.item).session(session);
         if (!product) throw new Error(`Producto con ID ${saleItem.item} no encontrado`);
 
