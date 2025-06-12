@@ -1,6 +1,8 @@
 const { response } = require('express');
 const Role = require("../models/role");
-
+const Users = require('../models/users');
+const mongoose = require("mongoose");
+const ObjectId = mongoose.Types.ObjectId;
 
 
 const createRole = async (req, res = response) => {
@@ -23,6 +25,8 @@ const createRole = async (req, res = response) => {
 
 
 const getRoles = async (req, res = response) => {
+    const { id } = req.params;
+
     try {
 
         const rolesFound = await Role.find();
@@ -44,6 +48,57 @@ const getRoles = async (req, res = response) => {
         })
     }
 }
+
+const getRolByUser = async (req, res = response) => {
+    const { rol } = req.params;
+
+    try {
+        const userRole = rol;
+
+        let rolesToReturn;
+
+        switch (userRole) {
+            case 'Super Administrador':
+                rolesToReturn = await Role.find();
+                break;
+            case 'Administrador':
+                rolesToReturn = await Role.find();
+                break;
+            case 'Empleado':
+                rolesToReturn = await Role.find({
+                    name: { $in: ['Miembro'] }
+                });
+                break;
+            case 'Miembro':
+                rolesToReturn = await Role.find({
+                    name: { $in: ['Miembro'] }
+                });
+                break;
+            default:
+                return res.status(403).json({
+                    ok: false,
+                    msg: 'No tienes permisos para ver los roles'
+                });
+        }
+
+        if (!rolesToReturn || rolesToReturn.length === 0) {
+            return res.status(404).json({
+                ok: false,
+                msg: 'No se encontraron roles disponibles para tu nivel de acceso'
+            });
+        }
+
+        return res.status(200).json(rolesToReturn);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            ok: false,
+            msg: 'Un error fue detectado, por favor habla con el administrador'
+        });
+    }
+};
+
 
 
 const updatedRol = async (req, res = response) => {
@@ -140,6 +195,7 @@ const deactivateRol = async (req, res = response) => {
 module.exports = {
     createRole,
     getRoles,
+    getRolByUser,
     updatedRol,
     deactivateRol
 }

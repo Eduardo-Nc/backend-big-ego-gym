@@ -1,10 +1,12 @@
 const { Router } = require('express');
-const { createRole, getRoles, deactivateRol, updatedRol } = require('../controllers/role');
+const { createRole, getRoles, getRolByUser, deactivateRol, updatedRol } = require('../controllers/role');
 
 const router = Router();
 
 
 router.get('/', getRoles);
+
+router.get('/:rol', getRolByUser);
 
 router.post('/new', createRole);
 

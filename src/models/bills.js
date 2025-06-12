@@ -16,6 +16,11 @@ const BillsSchema = new Schema({
         required: false,
         min: 0
     },
+    responsible: {
+        type: Schema.Types.ObjectId,
+        ref: "Users",
+        require: true
+    },
     description: {
         type: String,
         required: true

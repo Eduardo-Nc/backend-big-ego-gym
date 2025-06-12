@@ -2,10 +2,25 @@ const { response } = require('express');
 const Bill = require('../models/bills');
 
 const getBills = async (req, res = response) => {
+  const { date } = req.query;
+
   try {
-    const resBills = await Bill.find({
-      status: true
-    });
+    let filter = {
+      status: true,
+      responsible: id
+    };
+
+    if (date) {
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+
+      filter.createdAt = {
+        $gte: startDate,
+        $lte: endDate
+      };
+    }
+    const resBills = await Bill.find(filter).populate('responsible');
 
     if (!resBills) {
       return res.status(404).json({
@@ -25,6 +40,47 @@ const getBills = async (req, res = response) => {
   }
 }
 
+const getBillsByUser = async (req, res = response) => {
+  const { id } = req.params;
+  const { date } = req.query;
+
+  try {
+    let filter = {
+      status: true,
+      responsible: id
+    };
+
+    if (date) {
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+
+      filter.createdAt = {
+        $gte: startDate,
+        $lte: endDate
+      };
+    }
+
+    const resBills = await Bill.find(filter).populate('responsible');
+
+    if (!resBills || resBills.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        msg: 'Gastos no encontrados en la fecha indicada'
+      });
+    }
+
+    return res.status(200).json(resBills);
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      ok: false,
+      msg: 'Un error fue detectado, por favor habla con el administrador'
+    });
+  }
+};
+
 const createBill = async (req, res = response) => {
   try {
     const {
@@ -32,7 +88,8 @@ const createBill = async (req, res = response) => {
       quantity,
       description,
       name,
-      typePay
+      typePay,
+      responsible
     } = req.body;
 
     // Crear Bill base
@@ -41,6 +98,7 @@ const createBill = async (req, res = response) => {
       quantity: parseFloat(quantity),
       description,
       name,
+      responsible,
       typePay: typePay ? "Efectivo" : "Transferencia",
       status: true,
     });
@@ -68,7 +126,8 @@ const updateBill = async (req, res = response) => {
     quantity,
     description,
     name,
-    typePay
+    typePay,
+    responsible
   } = req.body;
 
   try {
@@ -79,6 +138,7 @@ const updateBill = async (req, res = response) => {
       quantity: parseFloat(quantity),
       description,
       name,
+      responsible,
       typePay: typePay ? "Efectivo" : "Transferencia",
     }, {
       new: true,
@@ -153,5 +213,6 @@ module.exports = {
   getBills,
   createBill,
   updateBill,
-  deleteBill
+  deleteBill,
+  getBillsByUser
 }
