@@ -5,7 +5,9 @@ const {
   createBill,
   updateBill,
   deleteBill,
-  getBillsByUser
+  getBillsByUser,
+  getBillsLimit,
+  getBillsByUserLimit
 } = require('../controllers/bills');
 
 const router = Router();
@@ -13,6 +15,10 @@ const router = Router();
 router.get('/', getBills);
 
 router.get('/:id', getBillsByUser);
+
+router.get('/limit/admin', getBillsLimit);
+
+router.get('/limit/:id', getBillsByUserLimit);
 
 router.post('/new', createBill);
 
