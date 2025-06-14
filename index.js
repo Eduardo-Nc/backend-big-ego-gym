@@ -54,6 +54,9 @@ app.use('/api/products', require('./src/routes/products.routes'));
 
 app.use('/api/bills', require('./src/routes/bills.routes'));
 
+app.use('/api/checkins', require('./src/routes/checkin.route'));
+
+
 app.use('/api/tasks', require('./src/routes/task.routes'));
 
 app.use('/api/inventory', require('./src/routes/inventory.routes'));

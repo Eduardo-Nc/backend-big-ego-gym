@@ -1,6 +1,7 @@
 const { response } = require('express');
 const bcrypt = require('bcryptjs');
 const Users = require('../models/users');
+const CheckIn = require('../models/checkIn');
 const { generarJWT } = require('../helpers/jwt');
 const jwt = require('jsonwebtoken');
 const { sendPasswordResetEmail, sendAccessCredentialsForEmail } = require('../helpers/sendEmail');
@@ -44,7 +45,7 @@ const getUser = async (req, res = response) => {
         if (!usuario) {
             return res.status(404).json({
                 ok: false,
-                message: 'Usuario no encontrado'
+                msg: 'Usuario no encontrado'
             })
         } else {
             return res.status(200).json(usuario);
@@ -60,6 +61,122 @@ const getUser = async (req, res = response) => {
 
 }
 
+const registerCheckIn = async (userId) => {
+    const now = new Date();
+    const minAllowedTime = new Date(now.getTime() - 10 * 60000); // 10 minutos antes
+
+    try {
+        const checkInExistente = await CheckIn.findOne({
+            user: userId,
+            checkInTime: {
+                $gte: minAllowedTime,
+                $lte: now
+            }
+        });
+
+        if (checkInExistente) {
+            return {
+                ok: false,
+                msg: 'Ya existe un check-in reciente. Espera al menos 10 minutos.'
+            };
+        }
+
+        await CheckIn.create({ user: userId });
+
+        return {
+            ok: true,
+            msg: 'Check-in registrado correctamente'
+        };
+
+    } catch (err) {
+        console.error('Error registrando check-in:', err);
+        return {
+            ok: false,
+            msg: 'Error en el servidor al registrar el check-in'
+        };
+    }
+};
+
+const checkMembership = async (req, res = response) => {
+    try {
+        const { id } = req.params;
+
+        const usuario = await Users.findById(id)
+            .populate('rol')
+            .populate('subscription');
+
+        if (!usuario) {
+            return res.status(404).json({
+                ok: false,
+                status: 'not_found',
+                msg: 'Usuario no encontrado'
+            });
+        }
+
+        if (!usuario.status) {
+            return res.status(403).json({
+                ok: false,
+                status: 'inactive_user',
+                msg: 'El usuario está inactivo'
+            });
+        }
+
+        const now = new Date();
+
+        if (!usuario.subscription || !usuario.membershipStart || !usuario.membershipEnd) {
+            return res.status(400).json({
+                ok: false,
+                status: 'no_membership',
+                msg: 'El usuario no cuenta con una membresía activa',
+                user: usuario
+            });
+        }
+
+        const membershipEnd = new Date(usuario.membershipEnd);
+
+        if (membershipEnd > now) {
+            const result = await registerCheckIn(usuario._id);
+            if (!result.ok) {
+                return res.status(400).json(result);
+            }
+
+            return res.status(200).json({
+                ok: true,
+                status: 'membership_active',
+                msg: 'El usuario tiene una membresía activa',
+                user: usuario,
+                membership: {
+                    subscription: usuario.subscription,
+                    start: usuario.membershipStart,
+                    end: usuario.membershipEnd
+                }
+            });
+        } else {
+            return res.status(400).json({
+                ok: false,
+                status: 'membership_expired',
+                msg: 'La membresía del usuario ha vencido',
+                user: usuario,
+                membership: {
+                    subscription: usuario.subscription,
+                    start: usuario.membershipStart,
+                    end: usuario.membershipEnd
+                }
+            });
+        }
+
+    } catch (error) {
+        console.error('Error al verificar membresía:', error);
+        return res.status(500).json({
+            ok: false,
+            status: 'server_error',
+            msg: 'Ocurrió un error en el servidor'
+        });
+    }
+};
+
+
+
 const getByEmployee = async (req, res = response) => {
     const { id } = req.params;
 
@@ -72,7 +189,7 @@ const getByEmployee = async (req, res = response) => {
         if (!empleados || empleados.length === 0) {
             return res.status(404).json({
                 ok: false,
-                message: 'No se encontraron empleados'
+                msg: 'No se encontraron empleados'
             });
         }
 
@@ -521,5 +638,6 @@ module.exports = {
     sendRedirectToApp,
     resetPassword,
     getUsers,
-    getByEmployee
+    getByEmployee,
+    checkMembership
 }

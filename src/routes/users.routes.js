@@ -11,13 +11,16 @@ const {
   sendRedirectToApp,
   resetPassword,
   getUsers,
-  getByEmployee
+  getByEmployee,
+  checkMembership
 } = require('../controllers/users');
 const { validarJWT } = require('../middlewares/validar-jwt');
 
 const router = Router();
 
 router.get('/', getUsers);
+
+router.get('/membership/:id', checkMembership);
 
 router.get('/:user_id', getUser);
 
