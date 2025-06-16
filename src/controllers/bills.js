@@ -85,56 +85,38 @@ const getBillsLimit = async (req, res = response) => {
   const { date } = req.query;
 
   try {
-    let filter = {
-      status: true
-    };
-    let filterSales = {
-      status: true
-    };
+    let billFilter = { status: true };
+    let saleFilter = { status: true };
 
     if (date) {
       const startDate = new Date(date);
       const endDate = new Date(date);
       endDate.setHours(23, 59, 59, 999);
 
-      filter.createdAt = {
-        $gte: startDate,
-        $lte: endDate
-      };
-      filterSales.createdAt = {
-        $gte: startDate,
-        $lte: endDate
-      };
+      billFilter.createdAt = { $gte: startDate, $lte: endDate };
+      saleFilter.createdAt = { $gte: startDate, $lte: endDate };
     }
 
-    const resBills = await Bill.find(filter)
-      .sort({ createdAt: -1 }) // Últimos creados primero
-      .limit(10); // Solo 10 registros
+    // Consultas en paralelo
+    const [bills, allBills, sales] = await Promise.all([
+      Bill.find(billFilter).sort({ createdAt: -1 }).limit(10),
+      Bill.find(billFilter),
+      Sale.find(saleFilter)
+    ]);
 
-    if (!resBills || resBills.length === 0) {
-      return res.status(404).json({
-        ok: false,
-        msg: 'Gastos no encontrados'
-      });
-    }
-
-    // Buscar ventas del mismo día
-    const sales = await Sale.find(filterSales);
-    const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
-
-    const resTotalBills = await Bill.find(filter);
-    const totalAmount = resTotalBills.reduce((sum, bill) => sum + bill.amount, 0);
+    const totalAmount = allBills.reduce((sum, bill) => sum + bill.amount, 0);
+    const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
 
     return res.status(200).json({
       ok: true,
-      bills: resBills,
+      bills,
       totalAmount,
       totalSales
     });
 
   } catch (error) {
     console.error(error);
-    res.status(500).json({
+    return res.status(500).json({
       ok: false,
       msg: 'Un error fue detectado, por favor habla con el administrador'
     });

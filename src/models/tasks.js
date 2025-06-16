@@ -19,11 +19,17 @@ const TasksSchema = new Schema({
         default: Date.now,
         required: true
     },
-    selectedUsers: [
+    userProgress: [
         {
-            type: Schema.Types.ObjectId,
-            ref: "Users",
-            required: true
+            user: {
+                type: Schema.Types.ObjectId,
+                ref: 'Users',
+                required: true
+            },
+            completed: {
+                type: Boolean,
+                default: false
+            }
         }
     ],
     status: {

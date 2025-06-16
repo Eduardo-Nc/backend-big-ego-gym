@@ -37,13 +37,22 @@ const getCheckinsByPeriod = async (req, res = response) => {
 
     // Estructura final
     const result = [
-      { value: noche, label: 'Noche' },
       { value: manana, label: 'Mañana' },
-      { value: tarde, label: 'Tarde' }
+      { value: tarde, label: 'Tarde' },
+      { value: noche, label: 'Noche' }
     ];
 
-    if (noche === 0 && manana === 0 && tarde === 0) {
+    if (manana === 0 && tarde === 0 && noche === 0) {
       return res.status(400).json({ ok: false, msg: 'No hay información' });
+    } else if (manana && tarde === 0 && noche === 0) {
+      return res.status(200).json([
+        { value: manana, label: 'Mañana' }
+      ]);
+    } else if (manana && tarde && noche === 0) {
+      return res.status(200).json([
+        { value: manana, label: 'Mañana' },
+        { value: tarde, label: 'Tarde' },
+      ]);
     }
 
     return res.status(200).json(result);

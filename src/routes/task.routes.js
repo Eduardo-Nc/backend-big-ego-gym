@@ -5,12 +5,21 @@ const {
   createTask,
   updateTask,
   deleteTask,
-  getTasksByUser
+  getTasksByUser,
+  getTasksByAdmin,
+  markTaskComplete,
+  getTasksByEmployee
 } = require('../controllers/tasks');
 
 const router = Router();
 
-router.get('/geyByUser/:id', getTasksByUser);
+router.get('/getByUser/:id', getTasksByUser);
+
+router.get('/getByAdmin', getTasksByAdmin);
+
+router.get('/getByEmployee/:userId', getTasksByEmployee);
+
+router.put('/markcomplete/:id', markTaskComplete);
 
 router.get('/', getTasks);
 
