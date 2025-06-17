@@ -4,7 +4,7 @@ const Users = require('../models/users');
 const CheckIn = require('../models/checkIn');
 const { generarJWT } = require('../helpers/jwt');
 const jwt = require('jsonwebtoken');
-const { sendPasswordResetEmail, sendAccessCredentialsForEmail } = require('../helpers/sendEmail');
+const { sendPasswordResetEmail, sendAccessCredentialsForEmail, resendAccessCredentials } = require('../helpers/sendEmail');
 const { generateAndUploadQR } = require('../helpers/qr');
 const { saveFileToCloudinary } = require('../helpers/saveFiles');
 
@@ -297,13 +297,25 @@ const updateUser = async (req, res = response) => {
     } = req.body;
 
     try {
-        // Clonamos el body y eliminamos el campo fotoUsuario si viene como objeto
+        // Buscar el usuario original
+        const existingUser = await Users.findById(user_id);
+        if (!existingUser) {
+            return res.status(404).json({
+                ok: false,
+                msg: 'Usuario no encontrado',
+            });
+        }
+
+        // Verificar si el correo fue modificado
+        const correoModificado = correo && correo !== existingUser.correo;
+
+        // Clonamos el body y eliminamos fotoUsuario si es un objeto (posiblemente archivo en form)
         const dataToUpdate = { ...req.body };
         if (dataToUpdate.fotoUsuario && typeof dataToUpdate.fotoUsuario === 'object') {
             delete dataToUpdate.fotoUsuario;
         }
 
-        // Primero actualizamos los datos normales (sin la foto)
+        // Actualizar los datos principales
         let updatedUser = await Users.findByIdAndUpdate(user_id, {
             nombreUsuario,
             apellidosUsuario,
@@ -316,14 +328,7 @@ const updateUser = async (req, res = response) => {
             runValidators: true,
         });
 
-        if (!updatedUser) {
-            return res.status(404).json({
-                ok: false,
-                msg: 'Usuario no encontrado',
-            });
-        }
-
-        // Si viene archivo (desde un form con file)
+        // Actualizar imagen si se envió
         if (req.files && req.files.fotoUsuario) {
             const file = req.files.fotoUsuario;
             const imageUrl = await saveFileToCloudinary(
@@ -333,7 +338,12 @@ const updateUser = async (req, res = response) => {
             );
 
             updatedUser.fotoUsuario = imageUrl;
-            await updatedUser.save(); // Guardamos con la nueva URL de la imagen
+            await updatedUser.save();
+        }
+
+        // Si el correo fue modificado, enviar notificación
+        if (correoModificado) {
+            await resendAccessCredentials(correo, updatedUser.nombreUsuario, updatedUser.qrUsuario);
         }
 
         return res.status(200).json({

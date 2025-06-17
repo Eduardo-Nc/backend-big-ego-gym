@@ -3,6 +3,9 @@ const Sale = require('../models/sale');
 const Product = require('../models/products');
 const Users = require('../models/users');
 const Subscription = require("../models/subscription");
+const moment = require('moment');
+
+const { membershipTemplate } = require('../helpers/sendEmail');
 
 const getSales = async (req, res = response) => {
   try {
@@ -94,6 +97,10 @@ const createSale = async (req, res = response) => {
 
         // Calcular fecha final
         const membershipEnd = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+        console.log(saleItem)
+        console.log(subscription)
+        console.log(buyerUser)
+        await membershipTemplate(buyerUser.correo, buyerUser.nombreUsuario, buyerUser.qrUsuario, subscription.name, moment(membershipEnd).format('DD-MM-YYYY, h:mm:ss a'));
 
         // Actualizar usuario
         buyerUser.subscription = subscription._id;
