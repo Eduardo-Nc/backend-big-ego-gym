@@ -103,9 +103,6 @@ const createSale = async (req, res = response) => {
 
         // Calcular fecha final
         const membershipEnd = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
-        console.log(saleItem)
-        console.log(subscription)
-        console.log(buyerUser)
         await membershipTemplate(buyerUser.correo, buyerUser.nombreUsuario, buyerUser.qrUsuario, subscription.name, moment(membershipEnd).format('DD-MM-YYYY, h:mm:ss a'));
 
         // Actualizar usuario

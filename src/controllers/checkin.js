@@ -23,8 +23,6 @@ const getCheckinsByPeriod = async (req, res = response) => {
       createdAt: { $gte: startDate, $lte: endDate }
     });
 
-    console.log("checkins ", checkins)
-
     // Inicializar contadores
     let manana = 0;
     let tarde = 0;

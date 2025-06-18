@@ -302,7 +302,8 @@ const updateUser = async (req, res = response) => {
         correo,
         telefonoUsuario,
         direccion,
-        rol
+        rol,
+        contrasena
     } = req.body;
 
     try {
@@ -336,6 +337,13 @@ const updateUser = async (req, res = response) => {
             new: true,
             runValidators: true,
         });
+
+        // Verificar si la contraseña fue modificada
+        if (contrasena !== '') {
+            const salt = bcrypt.genSaltSync();
+            updatedUser.contrasena = bcrypt.hashSync(contrasena, salt);
+            await updatedUser.save();
+        }
 
         // Actualizar imagen si se envió
         if (req.files && req.files.fotoUsuario) {

@@ -66,12 +66,12 @@ const getRolByUser = async (req, res = response) => {
                 break;
             case 'Empleado':
                 rolesToReturn = await Role.find({
-                    name: { $in: ['Miembro'] }
+                    name: { $in: ['Socio'] }
                 });
                 break;
-            case 'Miembro':
+            case 'Socio':
                 rolesToReturn = await Role.find({
-                    name: { $in: ['Miembro'] }
+                    name: { $in: ['Socio'] }
                 });
                 break;
             default:
