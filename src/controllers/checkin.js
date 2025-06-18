@@ -1,5 +1,7 @@
 const { response } = require('express');
 const Checkin = require('../models/checkIn');
+const moment = require('moment-timezone');
+
 
 const getCheckinsByPeriod = async (req, res = response) => {
   try {
@@ -9,13 +11,19 @@ const getCheckinsByPeriod = async (req, res = response) => {
       return res.status(400).json({ ok: false, msg: 'La fecha es obligatoria' });
     }
 
-    const startDate = new Date(`${date}T00:00:00.000Z`);
-    const endDate = new Date(`${date}T23:59:59.999Z`);
+    // Zona horaria local (ajústala si estás en otra región de México)
+    const timezone = 'America/Mexico_City';
+
+    // Rango en hora local convertido a UTC
+    const startDate = moment.tz(date, 'YYYY-MM-DD', timezone).startOf('day').toDate();
+    const endDate = moment.tz(date, 'YYYY-MM-DD', timezone).endOf('day').toDate();
 
     // Traer todos los checkins del día
     const checkins = await Checkin.find({
       createdAt: { $gte: startDate, $lte: endDate }
     });
+
+    console.log("checkins ", checkins)
 
     // Inicializar contadores
     let manana = 0;

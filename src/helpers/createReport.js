@@ -84,7 +84,7 @@ const generarReportePDF = async (data, nombreArchivo) => {
   <div class="container">
     <h2 class="title">Reporte de Flujo de Caja ${data.tipo}</h2>
     <h4 class="date">${data.date}</h4>
-    <h4 class="date">Responsable: ${data.responsable} - tel:${data.telefono}</h4>
+    <h4 class="date">Responsable: ${data.responsable} - tel: ${data.telefono}</h4>
 
     <div class="section">
       <h2>Totales</h2>

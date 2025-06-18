@@ -13,10 +13,19 @@ const ObjectId = mongoose.Types.ObjectId;
 
 
 const getUsers = async (req, res = response) => {
+    // const { page = 1, limit = 8 } = req.query;
+    // const skip = (page - 1) * limit;
+
     try {
-        const usuarios = await Users.find({
-            status: true
-        }).populate('rol').populate('subscription').sort({ createdAt: -1 });
+        const [total, usuarios] = await Promise.all([
+            Users.countDocuments({ status: true }),
+            Users.find({ status: true })
+                .populate('rol')
+                .populate('subscription')
+                // .skip(Number(skip))
+                // .limit(Number(limit))
+                .sort({ createdAt: -1 })
+        ]);
 
         if (!usuarios) {
             return res.status(404).json({

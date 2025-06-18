@@ -2,10 +2,22 @@ const { response } = require('express');
 const Task = require('../models/tasks');
 
 const getTasks = async (req, res = response) => {
+  // Normaliza la fecha recibida al inicio del día en UTC
+  const inputDate = new Date();
+  const targetDate = new Date(Date.UTC(
+    inputDate.getUTCFullYear(),
+    inputDate.getUTCMonth(),
+    inputDate.getUTCDate()
+  ));
+
   try {
     const resTask = await Task.find({
-      status: true
-    }).populate('userProgress.user').sort({ createdAt: -1 });
+      status: true,
+      startDate: { $lte: targetDate },
+      endDate: { $gte: targetDate }
+    })
+      .populate('userProgress.user')
+      .sort({ createdAt: -1 });
 
     if (!resTask || resTask.length === 0) {
       return res.status(404).json({
@@ -40,10 +52,15 @@ const markTaskComplete = async (req, res = response) => {
       return res.status(404).json({ ok: false, msg: 'Progreso de usuario no encontrado en esta tarea' });
     }
 
-    progress.completed = true;
+    // Cambiar el estado actual (true -> false, false -> true)
+    progress.completed = !progress.completed;
     await task.save();
 
-    return res.status(200).json({ ok: true, msg: 'Tarea completada', task });
+    return res.status(200).json({
+      ok: true,
+      msg: `Tarea marcada como ${progress.completed ? 'completada' : 'incompleta'}`,
+      task
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ ok: false, msg: 'Error en el servidor' });
