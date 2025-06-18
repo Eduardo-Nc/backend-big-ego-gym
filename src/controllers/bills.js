@@ -20,7 +20,7 @@ const getBills = async (req, res = response) => {
         $lte: endDate
       };
     }
-    const resBills = await Bill.find(filter).populate('responsible');
+    const resBills = await Bill.find(filter).populate('responsible').sort({ createdAt: -1 });
 
     if (!resBills) {
       return res.status(404).json({
@@ -61,7 +61,7 @@ const getBillsByUser = async (req, res = response) => {
       };
     }
 
-    const resBills = await Bill.find(filter).populate('responsible');
+    const resBills = await Bill.find(filter).populate('responsible').sort({ createdAt: -1 });
 
     if (!resBills || resBills.length === 0) {
       return res.status(404).json({

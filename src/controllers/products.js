@@ -7,7 +7,7 @@ const getProducts = async (req, res = response) => {
   try {
     const resProduct = await Product.find({
       status: true
-    });
+    }).sort({ createdAt: -1 });
 
     if (!resProduct) {
       return res.status(404).json({

@@ -5,7 +5,7 @@ const getTasks = async (req, res = response) => {
   try {
     const resTask = await Task.find({
       status: true
-    }).populate('userProgress.user');
+    }).populate('userProgress.user').sort({ createdAt: -1 });
 
     if (!resTask || resTask.length === 0) {
       return res.status(404).json({

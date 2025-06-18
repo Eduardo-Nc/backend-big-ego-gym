@@ -16,7 +16,7 @@ const getUsers = async (req, res = response) => {
     try {
         const usuarios = await Users.find({
             status: true
-        }).populate('rol').populate('subscription');
+        }).populate('rol').populate('subscription').sort({ createdAt: -1 });
 
         if (!usuarios) {
             return res.status(404).json({

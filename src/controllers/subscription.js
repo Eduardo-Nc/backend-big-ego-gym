@@ -23,7 +23,7 @@ const getSubscription = async (req, res = response) => {
     try {
         const resSub = await Subscription.find({
             status: true
-        });
+        }).sort({ createdAt: -1 });
 
         if (!resSub) {
             return res.status(404).json({

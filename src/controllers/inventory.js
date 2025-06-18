@@ -6,7 +6,7 @@ const getInventorys = async (req, res = response) => {
   try {
     const resInventory = await Inventory.find({
       status: true
-    });
+    }).sort({ createdAt: -1 });
 
     if (!resInventory) {
       return res.status(404).json({
