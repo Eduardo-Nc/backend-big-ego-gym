@@ -65,10 +65,9 @@ app.use('/api/sale', require('./src/routes/sale.routes'));
 
 app.use(express.static(path.join(__dirname, './public')));
 
-app.use(express.static(path.join(__dirname, './src/facturas')));
+app.use(express.static(path.join(__dirname, './src/reportes')));
 
-app.use(express.static(path.join(__dirname, './src/templates')));
-
+app.use('/reportes', express.static(path.join(__dirname, './src/reportes')));
 
 app.set('port', process.env.PORT || 30020);
 

@@ -4,7 +4,8 @@ const {
   getSales,
   createSale,
   updateSale,
-  deleteSale
+  deleteSale,
+  createReport
 } = require('../controllers/sale');
 
 const router = Router();
@@ -16,6 +17,8 @@ router.post('/new', createSale);
 router.put('/update/:id', updateSale);
 
 router.put('/delete/:id', deleteSale);
+
+router.post('/reports/generate', createReport);
 
 
 module.exports = router;
