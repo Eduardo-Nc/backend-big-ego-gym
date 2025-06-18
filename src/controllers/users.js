@@ -552,7 +552,7 @@ const sendPasswordReset = async (req, res = response) => {
         const token = await generarJWT(usuario._id, usuario.nombreUsuario, '15m', { reset: true });
 
         // Enviar el token por correo
-        await sendPasswordOfEmail(usuario.correo, usuario.nombreUsuario, token);
+        await sendPasswordOfEmail(usuario.correo, usuario.nombreUsuario, token, process.env.URL_SERVER);
 
         return res.status(200).json({
             ok: true,
