@@ -42,6 +42,7 @@ const generarReportePDF = async (data, nombreArchivo) => {
       font-size: 2rem;
       text-transform: uppercase;
       margin: 0;
+      color: #f9e300;
     }
 
     .container {

@@ -206,7 +206,7 @@ const createBill = async (req, res = response) => {
     const nuevoGasto = new Bill({
       amount: parseFloat(amount),
       quantity: parseFloat(quantity),
-      description,
+      description: description ? description : "",
       name,
       responsible,
       typePay: typePay ? "Efectivo" : "Transferencia",
@@ -246,7 +246,7 @@ const updateBill = async (req, res = response) => {
     let resBills = await Bill.findByIdAndUpdate(id, {
       amount: parseFloat(amount),
       quantity: parseFloat(quantity),
-      description,
+      description: description ? description : "",
       name,
       responsible,
       typePay: typePay ? "Efectivo" : "Transferencia",
