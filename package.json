@@ -8,7 +8,6 @@
     "dev": "nodemon index.js"
   },
   "dependencies": {
-    "axios": "^1.9.0",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
     "cloudinary": "^2.6.1",
@@ -24,7 +23,6 @@
     "moment-timezone": "^0.6.0",
     "mongodb": "6.16",
     "mongoose": "^8.15.1",
-    "mongoose-paginate-v2": "^1.9.1",
     "morgan": "^1.10.0",
     "node-cron": "^4.0.7",
     "nodemailer": "^7.0.3",

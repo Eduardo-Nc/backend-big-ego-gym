@@ -3,7 +3,10 @@ const path = require('path');
 const puppeteer = require('puppeteer');
 
 const generarReportePDF = async (data, nombreArchivo) => {
-  const browser = await puppeteer.launch();
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
+  });
   const page = await browser.newPage();
 
   // Generar HTML dinámico del reporte
