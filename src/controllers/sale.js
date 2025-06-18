@@ -5,7 +5,7 @@ const Users = require('../models/users');
 const Subscription = require("../models/subscription");
 const Checkin = require('../models/checkIn');
 const Bill = require('../models/bills');
-const moment = require('moment');
+const moment = require('moment-timezone');
 const path = require('path');
 const fs = require('fs');
 
@@ -234,21 +234,22 @@ const deleteSale = async (req, res = response) => {
 }
 
 const obtenerRangoFechas = (tipo) => {
+  const timezone = 'America/Mexico_City';
   const fin = moment().endOf('day');
   let inicio;
 
   switch (tipo) {
     case 'diario':
-      inicio = moment().startOf('day');
+      inicio = moment().tz(timezone).startOf('day');
       break;
     case 'semanal':
-      inicio = moment().startOf('week'); // Lunes
+      inicio = moment().tz(timezone).startOf('week'); // Lunes
       break;
     case 'mensual':
-      inicio = moment().startOf('month');
+      inicio = moment().tz(timezone).startOf('month');
       break;
     case 'anual':
-      inicio = moment().startOf('year');
+      inicio = moment().tz(timezone).startOf('year');
       break;
     default:
       throw new Error('Tipo de intervalo inválido');
@@ -259,7 +260,7 @@ const obtenerRangoFechas = (tipo) => {
 
 const createReport = async (req, res = response) => {
   try {
-    const { tipo = 'diario', user, tel } = req.body;
+    const { tipo = 'diario', user = '', tel = '' } = req.body;
     const { inicio, fin } = obtenerRangoFechas(tipo);
 
     const nombreArchivo = `reporte_${Date.now()}`;
