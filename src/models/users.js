@@ -20,7 +20,7 @@ const usersSchema = Schema({
     },
     telefonoUsuario: {
         type: String,
-        require: true
+        require: false
     },
     contrasena: {
         type: String,

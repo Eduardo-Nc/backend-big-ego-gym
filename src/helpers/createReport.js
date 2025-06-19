@@ -76,6 +76,15 @@ const generarReportePDF = async (data, nombreArchivo) => {
     ul li {
       margin: 6px 0;
     }
+
+    .page-break {
+      page-break-before: always;
+      break-before: always;
+    }
+
+    .m-top{
+     padding-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -105,8 +114,97 @@ const generarReportePDF = async (data, nombreArchivo) => {
         ${data.checkIns.map(item => `<li><strong>${item.hora}:</strong> ${item.total} asistencias</li>`).join('')}
       </ul>
     </div>
-  </div>
 
+    <div class="section page-break m-top">
+      <h2>Tasa de cumplimiento de tareas por empleado</h2>
+      <table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 14px;">
+      <thead style="background-color: #f2f2f2;">
+        <tr>
+          <th style="text-align: left;">Empleado</th>
+          <th style="text-align: center;">Tareas completadas</th>
+          <th style="text-align: center;">Total de tareas</th>
+          <th style="text-align: center;">% Cumplimiento</th>
+        </tr>
+      </thead>
+      <tbody>
+       ${data.dataCumplimiento.map(item =>
+    `
+    <tr>
+      <td>${item.nombre}</td>
+      <td style="text-align: center;">${item.completadas}</td>
+      <td style="text-align: center;">${item.total}</td>
+      <td style="text-align: center;">${item.porcentaje}%</td>
+    </tr>
+    `
+  ).join('')}
+      </tbody>
+    </table>
+    </div>
+
+
+       <div class="section">
+      <h2>Productos más vendidos</h2>
+       <table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 14px;">
+      <thead style="background-color: #f2f2f2;">
+        <tr>
+          <th style="text-align: left;">Nombre producto</th>
+          <th style="text-align: center;">Cantidad</th>
+        </tr>
+      </thead>
+      <tbody>
+       ${data.topProductos.map(item =>
+    `
+    <tr>
+      <td>${item.nombre}</td>
+      <td style="text-align: center;">${item.cantidad}</td>
+    </tr>
+    `
+  ).join('')}
+      </tbody>
+    </table>
+    </div>
+
+      <div class="section">
+      <h2>Clientes con mayor número de visitas</h2>
+     <table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 14px;">
+      <thead style="background-color: #f2f2f2;">
+        <tr>
+          <th style="text-align: left;">Socio</th>
+          <th style="text-align: center;">Visitas</th>
+        </tr>
+      </thead>
+      <tbody>
+       ${data.clientesFrecuentes.map(item =>
+    `
+    <tr>
+      <td>${item.nombre}</td>
+      <td style="text-align: center;">${item.visitas}</td>
+    </tr>
+    `
+  ).join('')}
+      </tbody>
+    </table>
+    </div>
+
+
+       <div class="section">
+      <h2>Método de pago más utilizado</h2>
+     <table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 14px;">
+      <thead style="background-color: #f2f2f2;">
+        <tr>
+          <th style="text-align: left;">Tipo</th>
+        </tr>
+      </thead>
+      <tbody>
+    <tr>
+      <td>${data.metodoPagoPreferido}</td>
+    </tr>
+      </tbody>
+    </table>
+    </div>
+
+
+  </div>
 </body>
 </html>
 

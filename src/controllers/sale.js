@@ -5,6 +5,7 @@ const Users = require('../models/users');
 const Subscription = require("../models/subscription");
 const Checkin = require('../models/checkIn');
 const Bill = require('../models/bills');
+const Task = require('../models/tasks');
 const moment = require('moment-timezone');
 const path = require('path');
 const fs = require('fs');
@@ -73,21 +74,11 @@ const createSale = async (req, res = response) => {
       if (saleItem.itemType === 'membership') {
         const now = new Date();
 
-        const hasActiveMembership =
-          buyerUser.subscription &&
-          buyerUser.membershipEnd &&
-          new Date(buyerUser.membershipEnd) > now;
-
-        if (hasActiveMembership) {
-          throw new Error('El usuario ya tiene una membresía activa. No puede comprar otra hasta que expire.');
-        }
-
         const subscription = await Subscription.findById(saleItem.item).session(session);
         if (!subscription) {
           throw new Error('La suscripción indicada no existe');
         }
 
-        // Duraciones según typeSubscription
         const durations = {
           diaria: 1,
           semanal: 7,
@@ -101,13 +92,42 @@ const createSale = async (req, res = response) => {
           throw new Error(`Tipo de suscripción no válido: ${subscription.typeSubscription}`);
         }
 
-        // Calcular fecha final
-        const membershipEnd = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
-        await membershipTemplate(buyerUser.correo, buyerUser.nombreUsuario, buyerUser.qrUsuario, subscription.name, moment(membershipEnd).format('DD-MM-YYYY, h:mm:ss a'));
+        let membershipStart = now;
+        let membershipEnd;
+
+        // Si tiene membresía activa
+        if (
+          buyerUser.subscription &&
+          buyerUser.membershipEnd &&
+          new Date(buyerUser.membershipEnd) > now
+        ) {
+          const remainingTime = new Date(buyerUser.membershipEnd).getTime() - now.getTime();
+          const oneDayInMs = 24 * 60 * 60 * 1000;
+
+          // Si faltan más de 1 día, no se permite
+          if (remainingTime > oneDayInMs) {
+            throw new Error('El usuario posee una membresía activa. Para adquirir una nueva, debe estar a un día o menos de su vencimiento');
+          }
+
+          // Si faltan menos de 1 día, se suma desde el fin actual
+          membershipStart = new Date(buyerUser.membershipEnd);
+        }
+
+        // Sumar días desde membershipStart
+        membershipEnd = new Date(membershipStart.getTime() + durationDays * 24 * 60 * 60 * 1000);
+
+        // Enviar correo
+        await membershipTemplate(
+          buyerUser.correo,
+          buyerUser.nombreUsuario,
+          buyerUser.qrUsuario,
+          subscription.name,
+          moment(membershipEnd).format('DD-MM-YYYY, h:mm:ss a')
+        );
 
         // Actualizar usuario
         buyerUser.subscription = subscription._id;
-        buyerUser.membershipStart = now;
+        buyerUser.membershipStart = membershipStart;
         buyerUser.membershipEnd = membershipEnd;
 
         await buyerUser.save({ session });
@@ -266,6 +286,37 @@ const createReport = async (req, res = response) => {
     const nombreArchivo = `reporte_${Date.now()}`;
     const folderPath = path.join(__dirname, '../reportes');
 
+    const tareas = await Task.find({
+      createdAt: { $gte: inicio, $lte: fin },
+      status: true
+    }).populate('userProgress.user').lean();
+
+    const cumplimientoPorEmpleado = {};
+    tareas.forEach(t => {
+      t.userProgress.forEach(p => {
+        const userId = p.user._id.toString();
+        if (!cumplimientoPorEmpleado[userId]) {
+          cumplimientoPorEmpleado[userId] = {
+            nombre: `${p.user.nombreUsuario} ${p.user.apellidosUsuario}`,
+            completadas: 0,
+            total: 0
+          };
+        }
+
+        cumplimientoPorEmpleado[userId].total += 1;
+        if (p.completed) {
+          cumplimientoPorEmpleado[userId].completadas += 1;
+        }
+      });
+    });
+
+    const dataCumplimiento = Object.values(cumplimientoPorEmpleado).map(info => ({
+      nombre: info.nombre,
+      completadas: info.completadas,
+      total: info.total,
+      porcentaje: info.total === 0 ? 0 : Math.round((info.completadas / info.total) * 100)
+    }));
+
     // ===> Ingresos desde ventas
     const ventas = await Sale.find({
       createdAt: { $gte: inicio, $lte: fin },
@@ -286,6 +337,32 @@ const createReport = async (req, res = response) => {
       }
     }
 
+    const productosVendidos = {};
+    ventas.forEach(v => {
+      v.items.forEach(item => {
+        if (item.itemType === 'products') {
+          const id = item.item._id.toString();
+          if (!productosVendidos[id]) {
+            productosVendidos[id] = {
+              nombre: item.item.name,
+              cantidad: 0
+            };
+          }
+          productosVendidos[id].cantidad += item.quantity;
+        }
+      });
+    });
+    const topProductos = Object.values(productosVendidos)
+      .sort((a, b) => b.cantidad - a.cantidad)
+      .slice(0, 5); // Top 5
+
+
+    const conteoMetodos = {};
+    ventas.forEach(v => {
+      conteoMetodos[v.paymentMethod] = (conteoMetodos[v.paymentMethod] || 0) + 1;
+    });
+    const metodoPagoPreferido = Object.entries(conteoMetodos).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
+
     let totalVentas = 0;
     let productos = 0;
     let membresias = 0;
@@ -295,6 +372,7 @@ const createReport = async (req, res = response) => {
     let values = [];
     let responsable = user;
     let telefono = tel;
+
 
     ventas.forEach(v => {
       totalVentas += v.total;
@@ -352,7 +430,23 @@ const createReport = async (req, res = response) => {
     const totalGastos = gastos.reduce((acc, g) => acc + g.amount, 0);
 
     // ===> Check-ins por bloques de 3 horas
-    const checkins = await Checkin.find({ createdAt: { $gte: inicio, $lte: fin } });
+    const checkins = await Checkin.find({ createdAt: { $gte: inicio, $lte: fin } }).populate('user');
+
+    const visitasPorCliente = {};
+    checkins.forEach(c => {
+      const uid = c.user._id.toString();
+      if (!visitasPorCliente[uid]) {
+        visitasPorCliente[uid] = {
+          nombre: c.user.nombreUsuario,
+          visitas: 0
+        };
+      }
+      visitasPorCliente[uid].visitas += 1;
+    });
+
+    const clientesFrecuentes = Object.values(visitasPorCliente)
+      .sort((a, b) => b.visitas - a.visitas)
+      .slice(0, 5);
 
     const bloques = [
       { label: '4am - 7am', inicio: 4, fin: 7 },
@@ -388,7 +482,11 @@ const createReport = async (req, res = response) => {
       labels,
       values,
       responsable,
-      telefono
+      telefono,
+      dataCumplimiento,
+      topProductos,
+      clientesFrecuentes,
+      metodoPagoPreferido
     };
 
     // console.log(data)

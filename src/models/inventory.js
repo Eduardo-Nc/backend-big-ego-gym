@@ -24,10 +24,11 @@ const InventorySchema = new Schema({
         type: Number,
         min: 0,
         default: 0,
+        required: false
     },
     brand: {
         type: String,
-        trim: true,
+        trim: false,
     },
     image_url: {
         type: String,
