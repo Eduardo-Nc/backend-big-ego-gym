@@ -122,7 +122,7 @@ const createSale = async (req, res = response) => {
           buyerUser.nombreUsuario,
           buyerUser.qrUsuario,
           subscription.name,
-          moment(membershipEnd).format('DD-MM-YYYY, h:mm:ss a')
+          moment(membershipEnd).tz('America/Mexico_City').format('DD-MM-YYYY, h:mm:ss a')
         );
 
         // Actualizar usuario

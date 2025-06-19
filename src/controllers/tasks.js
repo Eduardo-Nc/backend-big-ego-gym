@@ -88,8 +88,8 @@ const getTasksByUser = async (req, res = response) => {
       startDate: { $lte: targetDate },
       endDate: { $gte: targetDate },
       'userProgress.user': id
-    }).populate('userProgress.user');
-    console.log(tasks)
+    }).populate('userProgress.user').sort({ updatedAt: 1 });
+
     return res.status(200).json(tasks);
 
   } catch (error) {
