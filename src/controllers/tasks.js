@@ -88,9 +88,19 @@ const getTasksByUser = async (req, res = response) => {
       startDate: { $lte: targetDate },
       endDate: { $gte: targetDate },
       'userProgress.user': id
-    }).populate('userProgress.user').sort({ updatedAt: 1 });
+    }).populate('userProgress.user').sort({ createdAt: -1 });
 
-    return res.status(200).json(tasks);
+    const orderedTasks = tasks.sort((a, b) => {
+      const aProgress = a.userProgress.find(p => p.user._id.toString() === id.toString());
+      const bProgress = b.userProgress.find(p => p.user._id.toString() === id.toString());
+
+      // false (no completado) debe ir antes que true (completado)
+      return (aProgress?.completed === bProgress?.completed)
+        ? 0
+        : aProgress?.completed ? 1 : -1;
+    });
+
+    return res.status(200).json(orderedTasks);
 
   } catch (error) {
     console.error(error);
