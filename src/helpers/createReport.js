@@ -164,12 +164,12 @@ const generarReportePDF = async (data, nombreArchivo) => {
     </table>
     </div>
 
-      <div class="section">
+      <div class="section page-break">
       <h2>Clientes con mayor número de visitas</h2>
      <table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 14px;">
       <thead style="background-color: #f2f2f2;">
         <tr>
-          <th style="text-align: left;">Socio</th>
+          <th style="text-align: left;">Nombre</th>
           <th style="text-align: center;">Visitas</th>
         </tr>
       </thead>
