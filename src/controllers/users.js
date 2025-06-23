@@ -136,7 +136,7 @@ const checkMembership = async (req, res = response) => {
             return res.status(400).json({
                 ok: false,
                 status: 'no_membership',
-                msg: 'El usuario no cuenta con una membresía activa',
+                msg: `El usuario: ${usuario.nombreUsuario} ${usuario.apellidosUsuario} no cuenta con una membresía activa`,
                 user: usuario
             });
         }
@@ -152,7 +152,7 @@ const checkMembership = async (req, res = response) => {
             return res.status(200).json({
                 ok: true,
                 status: 'membership_active',
-                msg: 'El usuario tiene una membresía activa',
+                msg: `El usuario ${usuario.nombreUsuario} ${usuario.apellidosUsuario} ingresó correctamente.`,
                 user: usuario,
                 membership: {
                     subscription: usuario.subscription,
@@ -164,7 +164,7 @@ const checkMembership = async (req, res = response) => {
             return res.status(400).json({
                 ok: false,
                 status: 'membership_expired',
-                msg: 'La membresía del usuario ha vencido',
+                msg: `La membresía del usuario: ${usuario.nombreUsuario} ${usuario.apellidosUsuario} ha vencido`,
                 user: usuario,
                 membership: {
                     subscription: usuario.subscription,

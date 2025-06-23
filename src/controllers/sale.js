@@ -517,10 +517,152 @@ const createReport = async (req, res = response) => {
   }
 }
 
+const getSaleByAdmin = async (req, res = response) => {
+  const { date } = req.query;
+
+  try {
+    let filter = {
+      status: true
+    };
+
+    if (date) {
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+
+      filter.createdAt = {
+        $gte: startDate,
+        $lte: endDate
+      };
+    }
+    const resSale = await Sale.find(filter).sort({ createdAt: -1 }).populate('buyer')
+      .populate('seller')
+      .lean();
+
+    // Poblamos manualmente los items
+    for (const venta of resSale) {
+      for (const item of venta.items) {
+        const modelo = item.itemType === 'products'
+          ? require('../models/products')
+          : require('../models/subscription');
+
+        item.item = await modelo.findById(item.item).lean();
+      }
+    }
+
+    const formatSales = resSale.map(venta => {
+      return {
+        id: venta._id,
+        fecha: new Date(venta.createdAt).toLocaleString('es-MX'),
+        cliente: venta.buyer?.nombreUsuario + " " + venta.buyer?.apellidosUsuario || 'Sin nombre',
+        vendedor: venta.seller?.nombreUsuario + " " + venta.seller?.apellidosUsuario || 'Sin vendedor',
+        metodoPago: venta.paymentMethod,
+        total: venta.total,
+        items: venta.items.map(i => ({
+          tipo: i.itemType === "products" ? "Producto" : "Membresía",
+          nombre: i.itemType === "products" ? i.item.name : "Membresía " + i.item.name,
+          cantidad: i.quantity,
+          precioUnitario: i.item.price,
+          subtotal: i.quantity * i.item.price
+        }))
+      };
+    });
+
+    if (!formatSales) {
+      return res.status(404).json({
+        ok: false,
+        msg: 'Ventas no encontradas'
+      })
+    } else {
+      return res.status(200).json(formatSales);
+    }
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      ok: false,
+      msg: 'Un error fue detectado, por favor habla con el administrador'
+    })
+  }
+}
+
+const getSalessByUser = async (req, res = response) => {
+  const { id } = req.params;
+  const { date } = req.query;
+
+  try {
+    let filter = {
+      status: true,
+      seller: id
+    };
+
+    if (date) {
+      const startDate = new Date(date);
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+
+      filter.createdAt = {
+        $gte: startDate,
+        $lte: endDate
+      };
+    }
+    const resSale = await Sale.find(filter).sort({ createdAt: -1 }).populate('buyer')
+      .populate('seller')
+      .lean();
+
+    // Poblamos manualmente los items
+    for (const venta of resSale) {
+      for (const item of venta.items) {
+        const modelo = item.itemType === 'products'
+          ? require('../models/products')
+          : require('../models/subscription');
+
+        item.item = await modelo.findById(item.item).lean();
+      }
+    }
+
+    const formatSales = resSale.map(venta => {
+      return {
+        id: venta._id,
+        fecha: new Date(venta.createdAt).toLocaleString('es-MX'),
+        cliente: venta.buyer?.nombreUsuario + " " + venta.buyer?.apellidosUsuario || 'Sin nombre',
+        vendedor: venta.seller?.nombreUsuario + " " + venta.seller?.apellidosUsuario || 'Sin vendedor',
+        metodoPago: venta.paymentMethod,
+        total: venta.total,
+        items: venta.items.map(i => ({
+          tipo: i.itemType === "products" ? "Producto" : "Membresía",
+          nombre: i.itemType === "products" ? i.item.name : "Membresía " + i.item.name,
+          cantidad: i.quantity,
+          precioUnitario: i.item.price,
+          subtotal: i.quantity * i.item.price
+        }))
+      };
+    });
+
+    if (!formatSales) {
+      return res.status(404).json({
+        ok: false,
+        msg: 'Ventas no encontradas'
+      })
+    } else {
+      return res.status(200).json(formatSales);
+    }
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      ok: false,
+      msg: 'Un error fue detectado, por favor habla con el administrador'
+    })
+  }
+};
+
 module.exports = {
   getSales,
   createSale,
   updateSale,
   deleteSale,
-  createReport
+  createReport,
+  getSaleByAdmin,
+  getSalessByUser
 }

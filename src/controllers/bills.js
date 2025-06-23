@@ -155,24 +155,23 @@ const getBillsByUserLimit = async (req, res = response) => {
       };
     }
 
-    const resBills = await Bill.find(filter)
-      .populate('responsible')
-      .sort({ createdAt: -1 }) // Más recientes primero
-      .limit(10); // Solo 10
+    // Consultas en paralelo
+    const [bills, allBills, sales] = await Promise.all([
+      Bill.find(filter).sort({ createdAt: -1 }).limit(10),
+      Bill.find(filter),
+      Sale.find(filterSales)
+    ]);
 
-    if (!resBills || resBills.length === 0) {
-      return res.status(404).json({
-        ok: false,
-        msg: 'Información no encontrada en la fecha indicada'
-      });
-    }
+    const totalAmount = allBills.reduce((sum, bill) => sum + bill.amount, 0);
+    const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
 
-    // Buscar ventas del mismo día
-    const sales = await Sale.find(filterSales);
-    const totalSales = sales.reduce((sum, s) => sum + s.total, 0);
+    return res.status(200).json({
+      ok: true,
+      bills,
+      totalAmount,
+      totalSales
+    });
 
-    const resTotalBills = await Bill.find(filter);
-    const totalAmount = resTotalBills.reduce((sum, bill) => sum + bill.amount, 0);
 
     return res.status(200).json({
       ok: true,
