@@ -193,9 +193,17 @@ const deleteProduct = async (req, res = response) => {
 const getAllProducts = async (req, res = response) => {
   try {
     // 1. Obtener productos
-    const products = await Product.find().lean();
+    const products = await Product.find(
+      {
+        status: true
+      }
+    ).lean();
     // 2. Obtener membresías
-    const memberships = await Subscription.find().lean();
+    const memberships = await Subscription.find(
+      {
+        status: true
+      }
+    ).lean();
 
     // 3. Normalizar formato
     const formattedProducts = products.map(p => ({
