@@ -77,7 +77,7 @@ const sendPasswordResetEmail = async (correo, nombre, token, server) => {
 
   <p>Para continuar, presiona el botón de abajo. Esto te redireccionará a la app para validar tu identidad.</p>
 
-  <a href="${server}/api/users/redirectpassword/${token}"  class="button">Restablecer Contraseña</a>
+  <a href="${server}api/users/redirectpassword/${token}"  class="button">Restablecer Contraseña</a>
 
   <p class="small-text">
     Este código expira en 15 minutos.<br />
