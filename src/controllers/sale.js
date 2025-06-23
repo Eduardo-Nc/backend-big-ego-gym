@@ -478,7 +478,7 @@ const createReport = async (req, res = response) => {
       date: date,
       checkIns: checkInPorHora,
       flujoCaja: (totalVentas - totalGastos),
-      pdfUrl: `${process.env.URL_SERVER}/reportes/${nombreArchivo}.pdf`,
+      pdfUrl: `${process.env.URL_SERVER}reportes/${nombreArchivo}.pdf`,
       labels,
       values,
       responsable,
