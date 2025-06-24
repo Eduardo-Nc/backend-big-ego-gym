@@ -181,25 +181,13 @@ const getBillsByUserLimit = async (req, res = response) => {
     if (date) {
       const inputDate = new Date(date);
 
-      // Start date: 00:00:00.000 UTC
-      const startDate = new Date(Date.UTC(
-        inputDate.getUTCFullYear(),
-        inputDate.getUTCMonth(),
-        inputDate.getUTCDate()
-      ));
+      // 00:00:00 hora local
+      const startDate = new Date(inputDate);
+      startDate.setHours(0, 0, 0, 0);
 
-      // End date: 23:59:59.999 UTC del mismo día
-      const endDate = new Date(Date.UTC(
-        inputDate.getUTCFullYear(),
-        inputDate.getUTCMonth(),
-        inputDate.getUTCDate(),
-        23, 59, 59, 999
-      ));
-
-      console.log("startDate ", startDate)
-      console.log("endDate ", endDate)
-
-
+      // 23:59:59.999 hora local
+      const endDate = new Date(inputDate);
+      endDate.setHours(23, 59, 59, 999);
 
       filter.createdAt = {
         $gte: startDate,
@@ -211,6 +199,10 @@ const getBillsByUserLimit = async (req, res = response) => {
         $lte: endDate
       };
     }
+
+    console.log("filter ", filter)
+    console.log("filterSales ", filterSales)
+
 
     // Consultas en paralelo
     const [bills, allBills, sales] = await Promise.all([
