@@ -1,16 +1,16 @@
 const { response } = require('express');
 const Task = require('../models/tasks');
+const moment = require('moment-timezone');
 
 const getTasks = async (req, res = response) => {
-  // Normaliza la fecha recibida al inicio del día en UTC
-  const inputDate = new Date();
-  const targetDate = new Date(Date.UTC(
-    inputDate.getUTCFullYear(),
-    inputDate.getUTCMonth(),
-    inputDate.getUTCDate()
-  ));
-
   try {
+    const inputDate = new Date(moment().tz('America/Mexico_City').format('YYYY-MM-DD'));
+    const targetDate = new Date(Date.UTC(
+      inputDate.getUTCFullYear(),
+      inputDate.getUTCMonth(),
+      inputDate.getUTCDate()
+    ));
+
     const resTask = await Task.find({
       status: true,
       startDate: { $lte: targetDate },

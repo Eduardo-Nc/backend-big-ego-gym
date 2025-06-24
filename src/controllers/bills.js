@@ -12,22 +12,10 @@ const getBills = async (req, res = response) => {
     };
 
     if (date) {
-      const inputDate = new Date(date);
+      const timezone = 'America/Mexico_City';
 
-      // Start date: 00:00:00.000 UTC
-      const startDate = new Date(Date.UTC(
-        inputDate.getUTCFullYear(),
-        inputDate.getUTCMonth(),
-        inputDate.getUTCDate()
-      ));
-
-      // End date: 23:59:59.999 UTC del mismo día
-      const endDate = new Date(Date.UTC(
-        inputDate.getUTCFullYear(),
-        inputDate.getUTCMonth(),
-        inputDate.getUTCDate(),
-        23, 59, 59, 999
-      ));
+      const startDate = moment.tz(date, timezone).startOf('day').toDate(); // 00:00:00 local
+      const endDate = moment.tz(date, timezone).endOf('day').toDate();     // 23:59:59.999 local
 
       filter.createdAt = {
         $gte: startDate,
@@ -65,22 +53,10 @@ const getBillsByUser = async (req, res = response) => {
     };
 
     if (date) {
-      const inputDate = new Date(date);
+      const timezone = 'America/Mexico_City';
 
-      // Start date: 00:00:00.000 UTC
-      const startDate = new Date(Date.UTC(
-        inputDate.getUTCFullYear(),
-        inputDate.getUTCMonth(),
-        inputDate.getUTCDate()
-      ));
-
-      // End date: 23:59:59.999 UTC del mismo día
-      const endDate = new Date(Date.UTC(
-        inputDate.getUTCFullYear(),
-        inputDate.getUTCMonth(),
-        inputDate.getUTCDate(),
-        23, 59, 59, 999
-      ));
+      const startDate = moment.tz(date, timezone).startOf('day').toDate(); // 00:00:00 local
+      const endDate = moment.tz(date, timezone).endOf('day').toDate();     // 23:59:59.999 local
 
       filter.createdAt = {
         $gte: startDate,
@@ -116,23 +92,10 @@ const getBillsLimit = async (req, res = response) => {
     let saleFilter = { status: true };
 
     if (date) {
-      const inputDate = new Date(date);
+      const timezone = 'America/Mexico_City';
 
-      // Start date: 00:00:00.000 UTC
-      const startDate = new Date(Date.UTC(
-        inputDate.getUTCFullYear(),
-        inputDate.getUTCMonth(),
-        inputDate.getUTCDate()
-      ));
-
-      // End date: 23:59:59.999 UTC del mismo día
-      const endDate = new Date(Date.UTC(
-        inputDate.getUTCFullYear(),
-        inputDate.getUTCMonth(),
-        inputDate.getUTCDate(),
-        23, 59, 59, 999
-      ));
-
+      const startDate = moment.tz(date, timezone).startOf('day').toDate(); // 00:00:00 local
+      const endDate = moment.tz(date, timezone).endOf('day').toDate();     // 23:59:59.999 local
       billFilter.createdAt = { $gte: startDate, $lte: endDate };
       saleFilter.createdAt = { $gte: startDate, $lte: endDate };
     }
@@ -195,10 +158,6 @@ const getBillsByUserLimit = async (req, res = response) => {
         $lte: endDate
       };
     }
-
-    console.log("filter ", filter)
-    console.log("filterSales ", filterSales)
-
 
     // Consultas en paralelo
     const [bills, allBills, sales] = await Promise.all([
