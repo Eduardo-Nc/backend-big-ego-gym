@@ -1,6 +1,7 @@
 const { response } = require('express');
 const Bill = require('../models/bills');
 const Sale = require('../models/sale');
+const moment = require('moment-timezone');
 
 const getBills = async (req, res = response) => {
   const { date } = req.query;
@@ -179,15 +180,10 @@ const getBillsByUserLimit = async (req, res = response) => {
     };
 
     if (date) {
-      const inputDate = new Date(date);
+      const timezone = 'America/Mexico_City';
 
-      // 00:00:00 hora local
-      const startDate = new Date(inputDate);
-      startDate.setHours(0, 0, 0, 0);
-
-      // 23:59:59.999 hora local
-      const endDate = new Date(inputDate);
-      endDate.setHours(23, 59, 59, 999);
+      const startDate = moment.tz(date, timezone).startOf('day').toDate(); // 00:00:00 local
+      const endDate = moment.tz(date, timezone).endOf('day').toDate();     // 23:59:59.999 local
 
       filter.createdAt = {
         $gte: startDate,
