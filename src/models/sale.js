@@ -30,7 +30,7 @@ const SalesSchema = new Schema({
     },
     paymentMethod: {
         type: String,
-        enum: ['Efectivo', 'Transferencia'],
+        enum: ['Efectivo', 'Transferencia', 'Pendiente'],
         required: true,
     },
     buyer: {
@@ -42,6 +42,11 @@ const SalesSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'Users',
         required: true
+    },
+    paid: {
+        type: Boolean,
+        required: true,
+        default: false
     },
     status: {
         type: Boolean,

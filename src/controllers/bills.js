@@ -89,7 +89,7 @@ const getBillsLimit = async (req, res = response) => {
 
   try {
     let billFilter = { status: true };
-    let saleFilter = { status: true };
+    let saleFilter = { status: true, paid: true };
 
     if (date) {
       const timezone = 'America/Mexico_City';

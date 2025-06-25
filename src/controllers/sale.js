@@ -17,7 +17,8 @@ const { generarReportePDF } = require('../helpers/createReport');
 const getSales = async (req, res = response) => {
   try {
     const resSale = await Sale.find({
-      status: true
+      status: true,
+      paid: true
     });
 
     if (!resSale) {
@@ -141,6 +142,7 @@ const createSale = async (req, res = response) => {
       paymentMethod,
       buyer,
       seller,
+      paid: paymentMethod === "Pendiente" ? false : true,
       status: true,
     });
 
@@ -168,41 +170,36 @@ const createSale = async (req, res = response) => {
 
 const updateSale = async (req, res = response) => {
   const { id } = req.params;
-  const {
-    items,
-    total,
-    paymentMethod,
-    buyer,
-    seller
-  } = req.body;
+  const { paid } = req.body;
+
+  const timezone = 'America/Mexico_City';
+  const now = moment().tz(timezone).toDate(); // Convertir a Date nativo
 
   try {
+    const updatedSale = await Sale.findByIdAndUpdate(
+      id,
+      {
+        paid,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
 
-    // Primero actualizamos los datos normales (sin la foto)
-    let resSale = await Sale.findByIdAndUpdate(id, {
-      items,
-      total: parseFloat(total),
-      paymentMethod,
-      buyer,
-      seller
-    }, {
-      new: true,
-      runValidators: true,
-    });
-
-    if (!resSale) {
+    if (!updatedSale) {
       return res.status(404).json({
         ok: false,
         msg: 'Venta no encontrada',
       });
     }
 
-    await resSale.save();
-
     return res.status(200).json({
       ok: true,
       msg: 'Venta actualizada correctamente',
-      user: resSale,
+      sale: updatedSale,
     });
 
   } catch (error) {
@@ -320,7 +317,8 @@ const createReport = async (req, res = response) => {
     // ===> Ingresos desde ventas
     const ventas = await Sale.find({
       createdAt: { $gte: inicio, $lte: fin },
-      status: true
+      status: true,
+      paid: true
     })
       .populate('buyer', 'nombreUsuario')
       .populate('seller', 'nombreUsuario')
@@ -558,6 +556,7 @@ const getSaleByAdmin = async (req, res = response) => {
         vendedor: venta.seller?.nombreUsuario + " " + venta.seller?.apellidosUsuario || 'Sin vendedor',
         metodoPago: venta.paymentMethod,
         total: venta.total,
+        paid: venta?.paid ? venta.paid : false,
         items: venta.items.map(i => ({
           tipo: i.itemType === "products" ? "Producto" : "Membresía",
           nombre: i.itemType === "products" ? i.item.name : "Membresía " + i.item.name,
