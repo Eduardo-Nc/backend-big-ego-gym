@@ -30,9 +30,9 @@ const getCheckinsByPeriod = async (req, res = response) => {
 
     // Clasificar por horario
     for (const checkin of checkins) {
-      const hora = new Date(checkin.createdAt).getHours();
-
-      if (hora >= 6 && hora < 12) {
+      const hora = moment(checkin.createdAt).tz('America/Mexico_City').hour();
+      console.log("hora ", hora)
+      if (hora >= 4 && hora < 12) {
         manana++;
       } else if (hora >= 12 && hora < 18) {
         tarde++;
