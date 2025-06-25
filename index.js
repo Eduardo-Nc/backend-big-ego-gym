@@ -63,6 +63,10 @@ app.use('/api/inventory', require('./src/routes/inventory.routes'));
 
 app.use('/api/sale', require('./src/routes/sale.routes'));
 
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
 app.use(express.static(path.join(__dirname, './public')));
 
 app.use(express.static(path.join(__dirname, './src/reportes')));
