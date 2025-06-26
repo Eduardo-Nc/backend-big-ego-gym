@@ -230,75 +230,156 @@ const createUser = async (req, res = response) => {
             membershipStart,
             membershipEnd,
         } = req.body;
-        console.log(req.body)
 
-        // Verificar si ya existe
-        const usuarioExistente = await Users.findOne({ status: true, correo });
-        if (usuarioExistente) {
+        console.log(req.body);
+
+        // 1. Verificar si existe usuario activo con ese correo
+        const usuarioActivo = await Users.findOne({ correo, status: true });
+        if (usuarioActivo) {
             return res.status(409).json({
                 ok: false,
-                msg: 'El correo electrónico ya está registrado con otro usuario'
+                msg: 'El correo electrónico ya está registrado con otro usuario activo',
             });
         }
+
+        // 2. Buscar usuario inactivo para reactivar
+        let usuarioInactivo = await Users.findOne({ correo, status: false });
 
         // Encriptar contraseña
         const salt = bcrypt.genSaltSync();
         const hashedPassword = bcrypt.hashSync(contrasena, salt);
 
         const timezone = 'America/Mexico_City';
-        const parsedStart = moment.tz(membershipStart, timezone).startOf('day').toDate();
-        const parsedEnd = moment.tz(membershipEnd, timezone).endOf('day').toDate();
-        console.log("parsedStart ", parsedStart)
-        console.log("parsedEnd ", parsedEnd)
+        const parsedStart = membershipStart
+            ? moment.tz(membershipStart, timezone).startOf('day').toDate()
+            : null;
+        const parsedEnd = membershipEnd
+            ? moment.tz(membershipEnd, timezone).endOf('day').toDate()
+            : null;
 
-        // Crear usuario base
-        const nuevoUsuario = new Users(!haveSub ? {
-            nombreUsuario,
-            apellidosUsuario,
-            correo,
-            telefonoUsuario,
-            contrasena: hashedPassword,
-            direccion,
-            edadUsuario,
-            rol,
-            status: true,
-        } : {
-            nombreUsuario,
-            apellidosUsuario,
-            correo,
-            telefonoUsuario,
-            contrasena: hashedPassword,
-            direccion,
-            edadUsuario,
-            rol,
-            subscription,
-            membershipStart: parsedStart,
-            membershipEnd: parsedEnd,
-            status: true,
-        });
+        if (usuarioInactivo) {
+            // Reactivar y actualizar datos
+            usuarioInactivo.nombreUsuario = nombreUsuario;
+            usuarioInactivo.apellidosUsuario = apellidosUsuario;
+            usuarioInactivo.telefonoUsuario = telefonoUsuario;
+            usuarioInactivo.contrasena = hashedPassword;
+            usuarioInactivo.direccion = direccion;
+            usuarioInactivo.edadUsuario = edadUsuario;
+            usuarioInactivo.rol = rol;
+            usuarioInactivo.status = true;
+
+            if (haveSub) {
+                usuarioInactivo.subscription = subscription;
+                usuarioInactivo.membershipStart = parsedStart;
+                usuarioInactivo.membershipEnd = parsedEnd;
+            } else {
+                usuarioInactivo.subscription = undefined;
+                usuarioInactivo.membershipStart = undefined;
+                usuarioInactivo.membershipEnd = undefined;
+            }
+
+            // Guardar cambios antes de subir foto y QR
+            await usuarioInactivo.save();
+
+            // Subir foto si viene (y actualizar campo)
+            if (req.files && req.files.fotoUsuario) {
+                const file = req.files.fotoUsuario;
+                const imageUrl = await saveFileToCloudinary(
+                    file.tempFilePath,
+                    'user_photos',
+                    usuarioInactivo._id.toString()
+                );
+                usuarioInactivo.fotoUsuario = imageUrl;
+            } else if (!usuarioInactivo.fotoUsuario) {
+                usuarioInactivo.fotoUsuario =
+                    'https://cdn-icons-png.flaticon.com/512/4792/4792929.png';
+            }
+
+            // Generar y subir QR
+            const urlQR = await generateAndUploadQR(usuarioInactivo._id.toString());
+            usuarioInactivo.qrUsuario = urlQR;
+
+            // Guardar cambios finales
+            await usuarioInactivo.save();
+
+            // Enviar credenciales por correo
+            await sendAccessCredentialsForEmail(
+                correo,
+                nombreUsuario,
+                contrasena,
+                urlQR
+            );
+
+            // Generar JWT
+            const token = await generarJWT(usuarioInactivo._id, usuarioInactivo.nombreUsuario);
+
+            return res.status(200).json({
+                ok: true,
+                msg: 'Usuario creado correctamente',
+                uid: usuarioInactivo._id,
+                name: usuarioInactivo.nombreUsuario,
+                roles: usuarioInactivo.rol,
+                token,
+            });
+        }
+
+        // 3. Si no existe usuario inactivo, crear uno nuevo
+        const nuevoUsuario = new Users(
+            !haveSub
+                ? {
+                    nombreUsuario,
+                    apellidosUsuario,
+                    correo,
+                    telefonoUsuario,
+                    contrasena: hashedPassword,
+                    direccion,
+                    edadUsuario,
+                    rol,
+                    status: true,
+                }
+                : {
+                    nombreUsuario,
+                    apellidosUsuario,
+                    correo,
+                    telefonoUsuario,
+                    contrasena: hashedPassword,
+                    direccion,
+                    edadUsuario,
+                    rol,
+                    subscription,
+                    membershipStart: parsedStart,
+                    membershipEnd: parsedEnd,
+                    status: true,
+                }
+        );
 
         const usuarioGuardado = await nuevoUsuario.save();
 
-        // 1. Subir foto si se envió
         if (req.files && req.files.fotoUsuario) {
             const file = req.files.fotoUsuario;
-            const imageUrl = await saveFileToCloudinary(file.tempFilePath, 'user_photos', usuarioGuardado._id.toString());
+            const imageUrl = await saveFileToCloudinary(
+                file.tempFilePath,
+                'user_photos',
+                usuarioGuardado._id.toString()
+            );
             usuarioGuardado.fotoUsuario = imageUrl;
         } else {
-            usuarioGuardado.fotoUsuario = "https://cdn-icons-png.flaticon.com/512/4792/4792929.png";
+            usuarioGuardado.fotoUsuario =
+                'https://cdn-icons-png.flaticon.com/512/4792/4792929.png';
         }
 
-        // 2. Generar y subir QR
         const urlQR = await generateAndUploadQR(usuarioGuardado._id.toString());
         usuarioGuardado.qrUsuario = urlQR;
 
-        // Guardar cambios
         await usuarioGuardado.save();
 
-        // 3. Enviar credenciales por correo
-        await sendAccessCredentialsForEmail(correo, nombreUsuario, contrasena, urlQR);
+        await sendAccessCredentialsForEmail(
+            correo,
+            nombreUsuario,
+            contrasena,
+            urlQR
+        );
 
-        // 4. Generar JWT
         const token = await generarJWT(usuarioGuardado._id, usuarioGuardado.nombreUsuario);
 
         return res.status(201).json({
@@ -307,14 +388,13 @@ const createUser = async (req, res = response) => {
             uid: usuarioGuardado._id,
             name: usuarioGuardado.nombreUsuario,
             roles: usuarioGuardado.rol,
-            token
+            token,
         });
-
     } catch (error) {
         console.error('Error al crear usuario:', error);
         return res.status(500).json({
             ok: false,
-            msg: 'Error del servidor. Por favor, contacta al administrador.'
+            msg: 'Error del servidor. Por favor, contacta al administrador.',
         });
     }
 };
