@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const { sendPasswordResetEmail, sendAccessCredentialsForEmail, resendAccessCredentials } = require('../helpers/sendEmail');
 const { generateAndUploadQR } = require('../helpers/qr');
 const { saveFileToCloudinary } = require('../helpers/saveFiles');
+const moment = require('moment-timezone')
 
 const mongoose = require("mongoose");
 const ObjectId = mongoose.Types.ObjectId;
@@ -223,8 +224,13 @@ const createUser = async (req, res = response) => {
             contrasena,
             direccion,
             edadUsuario,
-            rol
+            rol,
+            haveSub,
+            subscription,
+            membershipStart,
+            membershipEnd,
         } = req.body;
+        console.log(req.body)
 
         // Verificar si ya existe
         const usuarioExistente = await Users.findOne({ status: true, correo });
@@ -239,8 +245,14 @@ const createUser = async (req, res = response) => {
         const salt = bcrypt.genSaltSync();
         const hashedPassword = bcrypt.hashSync(contrasena, salt);
 
+        const timezone = 'America/Mexico_City';
+        const parsedStart = moment.tz(membershipStart, timezone).startOf('day').toDate();
+        const parsedEnd = moment.tz(membershipEnd, timezone).endOf('day').toDate();
+        console.log("parsedStart ", parsedStart)
+        console.log("parsedEnd ", parsedEnd)
+
         // Crear usuario base
-        const nuevoUsuario = new Users({
+        const nuevoUsuario = new Users(!haveSub ? {
             nombreUsuario,
             apellidosUsuario,
             correo,
@@ -249,6 +261,19 @@ const createUser = async (req, res = response) => {
             direccion,
             edadUsuario,
             rol,
+            status: true,
+        } : {
+            nombreUsuario,
+            apellidosUsuario,
+            correo,
+            telefonoUsuario,
+            contrasena: hashedPassword,
+            direccion,
+            edadUsuario,
+            rol,
+            subscription,
+            membershipStart: parsedStart,
+            membershipEnd: parsedEnd,
             status: true,
         });
 
