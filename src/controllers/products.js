@@ -66,7 +66,7 @@ const createProduct = async (req, res = response) => {
       const imageUrl = await saveFileToCloudinary(file.tempFilePath, 'products_photos', productoGuardado._id.toString());
       productoGuardado.image_url = imageUrl;
     } else {
-      productoGuardado.image_url = "";
+      productoGuardado.image_url = "https://res.cloudinary.com/ddkofntrk/image/upload/v1750991205/Proyecto_nuevo_tbkyvt.png";
     }
 
     // Guardar cambios
