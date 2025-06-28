@@ -524,9 +524,11 @@ const getSaleByAdmin = async (req, res = response) => {
     };
 
     if (date) {
-      const startDate = new Date(date);
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
+      const timeZone = 'America/Mexico_City';
+
+      // Parsear la fecha en tu timezone
+      const startDate = moment.tz(date, timeZone).startOf('day').toDate();
+      const endDate = moment.tz(date, timeZone).endOf('day').toDate();
 
       filter.createdAt = {
         $gte: startDate,
