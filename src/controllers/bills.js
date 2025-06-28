@@ -97,7 +97,7 @@ const getBillsLimit = async (req, res = response) => {
       const startDate = moment.tz(date, timezone).startOf('day').toDate(); // 00:00:00 local
       const endDate = moment.tz(date, timezone).endOf('day').toDate();     // 23:59:59.999 local
       billFilter.createdAt = { $gte: startDate, $lte: endDate };
-      saleFilter.createdAt = { $gte: startDate, $lte: endDate };
+      saleFilter.paymentDate = { $gte: startDate, $lte: endDate };
     }
 
     // Consultas en paralelo
@@ -139,7 +139,8 @@ const getBillsByUserLimit = async (req, res = response) => {
 
     let filterSales = {
       status: true,
-      seller: id
+      seller: id,
+      paid: true
     };
 
     if (date) {
@@ -153,7 +154,7 @@ const getBillsByUserLimit = async (req, res = response) => {
         $lte: endDate
       };
 
-      filterSales.createdAt = {
+      filterSales.paymentDate = {
         $gte: startDate,
         $lte: endDate
       };

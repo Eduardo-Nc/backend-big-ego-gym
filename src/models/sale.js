@@ -48,6 +48,11 @@ const SalesSchema = new Schema({
         required: true,
         default: false
     },
+    paymentDate: {
+        type: Date,
+        default: Date.now,
+        required: true
+    },
     status: {
         type: Boolean,
         required: true,

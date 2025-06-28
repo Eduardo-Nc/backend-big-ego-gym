@@ -231,8 +231,6 @@ const createUser = async (req, res = response) => {
             membershipEnd,
         } = req.body;
 
-        console.log(req.body);
-
         // 1. Verificar si existe usuario activo con ese correo
         const usuarioActivo = await Users.findOne({ correo, status: true });
         if (usuarioActivo) {

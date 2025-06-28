@@ -39,6 +39,64 @@ const getSales = async (req, res = response) => {
   }
 }
 
+const getPendingSales = async (req, res = response) => {
+  try {
+    const resSale = await Sale.find({
+      status: true,
+      paid: false
+    }).sort({ createdAt: -1 }).populate('buyer')
+      .populate('seller')
+      .lean();
+
+    // Poblamos manualmente los items
+    for (const venta of resSale) {
+      for (const item of venta.items) {
+        const modelo = item.itemType === 'products'
+          ? require('../models/products')
+          : require('../models/subscription');
+
+        item.item = await modelo.findById(item.item).lean();
+      }
+    }
+
+    const formatSales = resSale.map(venta => {
+      return {
+        id: venta._id,
+        fecha: venta.createdAt,
+        cliente: venta.buyer?.nombreUsuario + " " + venta.buyer?.apellidosUsuario || 'Sin nombre',
+        vendedor: venta.seller?.nombreUsuario + " " + venta.seller?.apellidosUsuario || 'Sin vendedor',
+        metodoPago: venta.paymentMethod,
+        total: venta.total,
+        paid: venta?.paid ? venta.paid : false,
+        items: venta.items.map(i => ({
+          tipo: i.itemType === "products" ? "Producto" : "Membresía",
+          nombre: i.itemType === "products" ? i.item.name : "Membresía " + i.item.name,
+          cantidad: i.quantity,
+          precioUnitario: i.item.price,
+          subtotal: i.quantity * i.item.price
+        }))
+      };
+    });
+
+    if (!formatSales) {
+      return res.status(404).json({
+        ok: false,
+        msg: 'Venta no encontrada'
+      })
+    } else {
+      return res.status(200).json(formatSales);
+    }
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({
+      ok: false,
+      msg: 'Un error fue detectado, por favor habla con el administrador'
+    })
+  }
+}
+
+
 const createSale = async (req, res = response) => {
   const session = await Sale.startSession();
   session.startTransaction();
@@ -84,6 +142,9 @@ const createSale = async (req, res = response) => {
           diaria: 1,
           semanal: 7,
           quincenal: 15,
+          Bimestral: 60,
+          Trimestral: 90,
+          Semestral: 180,
           mensual: 30,
           anual: 365
         };
@@ -136,6 +197,7 @@ const createSale = async (req, res = response) => {
     }
 
     // Guardar venta
+    const timezone = 'America/Mexico_City';
     const resSale = new Sale({
       items,
       total: parseFloat(total),
@@ -143,6 +205,7 @@ const createSale = async (req, res = response) => {
       buyer,
       seller,
       paid: paymentMethod === "Pendiente" ? false : true,
+      paymentDate: moment().tz(timezone).toDate(),
       status: true,
     });
 
@@ -170,26 +233,25 @@ const createSale = async (req, res = response) => {
 
 const updateSale = async (req, res = response) => {
   const { id } = req.params;
-  const { paid } = req.body;
+  const { paid, paymentMethod, seller } = req.body;
 
   const timezone = 'America/Mexico_City';
-  const now = moment().tz(timezone).toDate(); // Convertir a Date nativo
+  const now = moment().tz(timezone).toDate();
 
   try {
-    const updatedSale = await Sale.findByIdAndUpdate(
-      id,
+    const sale = await Sale.updateOne(
+      { _id: id },
       {
-        paid,
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        new: true,
-        runValidators: true,
+        $set: {
+          paymentDate: now,
+          paid,
+          paymentMethod,
+          seller
+        }
       }
     );
 
-    if (!updatedSale) {
+    if (!sale) {
       return res.status(404).json({
         ok: false,
         msg: 'Venta no encontrada',
@@ -199,7 +261,7 @@ const updateSale = async (req, res = response) => {
     return res.status(200).json({
       ok: true,
       msg: 'Venta actualizada correctamente',
-      sale: updatedSale,
+      sale: sale,
     });
 
   } catch (error) {
@@ -316,7 +378,7 @@ const createReport = async (req, res = response) => {
 
     // ===> Ingresos desde ventas
     const ventas = await Sale.find({
-      createdAt: { $gte: inicio, $lte: fin },
+      paymentDate: { $gte: inicio, $lte: fin },
       status: true,
       paid: true
     })
@@ -391,7 +453,7 @@ const createReport = async (req, res = response) => {
 
       dias.forEach(d => (acumulado[d] = 0));
       ventas.forEach(v => {
-        const dia = dias[moment(v.createdAt).day()];
+        const dia = dias[moment(v.paymentDate).day()];
         acumulado[dia] += v.total;
       });
 
@@ -411,7 +473,7 @@ const createReport = async (req, res = response) => {
       meses.forEach((m, i) => (acumulado[i] = 0));
 
       ventas.forEach(v => {
-        const mes = moment(v.createdAt).month(); // 0-11
+        const mes = moment(v.paymentDate).month(); // 0-11
         acumulado[mes] += v.total;
       });
 
@@ -530,12 +592,12 @@ const getSaleByAdmin = async (req, res = response) => {
       const startDate = moment.tz(date, timeZone).startOf('day').toDate();
       const endDate = moment.tz(date, timeZone).endOf('day').toDate();
 
-      filter.createdAt = {
+      filter.paymentDate = {
         $gte: startDate,
         $lte: endDate
       };
     }
-    const resSale = await Sale.find(filter).sort({ createdAt: -1 }).populate('buyer')
+    const resSale = await Sale.find(filter).sort({ paymentDate: -1 }).populate('buyer')
       .populate('seller')
       .lean();
 
@@ -553,7 +615,7 @@ const getSaleByAdmin = async (req, res = response) => {
     const formatSales = resSale.map(venta => {
       return {
         id: venta._id,
-        fecha: venta.createdAt,
+        fecha: venta.paymentDate,
         cliente: venta.buyer?.nombreUsuario + " " + venta.buyer?.apellidosUsuario || 'Sin nombre',
         vendedor: venta.seller?.nombreUsuario + " " + venta.seller?.apellidosUsuario || 'Sin vendedor',
         metodoPago: venta.paymentMethod,
@@ -604,14 +666,14 @@ const getSalessByUser = async (req, res = response) => {
       const startDate = moment.tz(date, timeZone).startOf('day').toDate();
       const endDate = moment.tz(date, timeZone).endOf('day').toDate();
 
-      filter.createdAt = {
+      filter.paymentDate = {
         $gte: startDate,
         $lte: endDate
       };
     }
 
 
-    const resSale = await Sale.find(filter).sort({ createdAt: -1 }).populate('buyer')
+    const resSale = await Sale.find(filter).sort({ paymentDate: -1 }).populate('buyer')
       .populate('seller')
       .lean();
 
@@ -629,11 +691,12 @@ const getSalessByUser = async (req, res = response) => {
     const formatSales = resSale.map(venta => {
       return {
         id: venta._id,
-        fecha: venta.createdAt,
+        fecha: venta.paymentDate,
         cliente: venta.buyer?.nombreUsuario + " " + venta.buyer?.apellidosUsuario || 'Sin nombre',
         vendedor: venta.seller?.nombreUsuario + " " + venta.seller?.apellidosUsuario || 'Sin vendedor',
         metodoPago: venta.paymentMethod,
         total: venta.total,
+        paid: venta?.paid ? venta.paid : false,
         items: venta.items.map(i => ({
           tipo: i.itemType === "products" ? "Producto" : "Membresía",
           nombre: i.itemType === "products" ? i.item.name : "Membresía " + i.item.name,
@@ -669,5 +732,6 @@ module.exports = {
   deleteSale,
   createReport,
   getSaleByAdmin,
-  getSalessByUser
+  getSalessByUser,
+  getPendingSales
 }

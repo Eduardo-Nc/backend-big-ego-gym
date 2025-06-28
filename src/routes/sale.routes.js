@@ -7,12 +7,15 @@ const {
   deleteSale,
   createReport,
   getSaleByAdmin,
-  getSalessByUser
+  getSalessByUser,
+  getPendingSales
 } = require('../controllers/sale');
 
 const router = Router();
 
 router.get('/', getSales);
+
+router.get('/pending', getPendingSales);
 
 router.post('/new', createSale);
 

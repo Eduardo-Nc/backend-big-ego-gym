@@ -7,7 +7,7 @@ const subscriptionSchema = new Schema({
   },
   typeSubscription: {
     type: String,
-    enum: ['Diario', 'Semanal', 'Quincenal', 'Mensual', 'Anual'],
+    enum: ['Diario', 'Semanal', 'Quincenal', 'Mensual', 'Bimestral', 'Trimestral', 'Semestral', 'Anual'],
     required: true,
   },
   category: {
