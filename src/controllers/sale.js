@@ -553,7 +553,7 @@ const getSaleByAdmin = async (req, res = response) => {
     const formatSales = resSale.map(venta => {
       return {
         id: venta._id,
-        fecha: new Date(venta.createdAt).toLocaleString('es-MX'),
+        fecha: venta.createdAt,
         cliente: venta.buyer?.nombreUsuario + " " + venta.buyer?.apellidosUsuario || 'Sin nombre',
         vendedor: venta.seller?.nombreUsuario + " " + venta.seller?.apellidosUsuario || 'Sin vendedor',
         metodoPago: venta.paymentMethod,
@@ -598,15 +598,19 @@ const getSalessByUser = async (req, res = response) => {
     };
 
     if (date) {
-      const startDate = new Date(date);
-      const endDate = new Date(date);
-      endDate.setHours(23, 59, 59, 999);
+      const timeZone = 'America/Mexico_City';
+
+      // Parsear la fecha en tu timezone
+      const startDate = moment.tz(date, timeZone).startOf('day').toDate();
+      const endDate = moment.tz(date, timeZone).endOf('day').toDate();
 
       filter.createdAt = {
         $gte: startDate,
         $lte: endDate
       };
     }
+
+
     const resSale = await Sale.find(filter).sort({ createdAt: -1 }).populate('buyer')
       .populate('seller')
       .lean();
@@ -625,7 +629,7 @@ const getSalessByUser = async (req, res = response) => {
     const formatSales = resSale.map(venta => {
       return {
         id: venta._id,
-        fecha: new Date(venta.createdAt).toLocaleString('es-MX'),
+        fecha: venta.createdAt,
         cliente: venta.buyer?.nombreUsuario + " " + venta.buyer?.apellidosUsuario || 'Sin nombre',
         vendedor: venta.seller?.nombreUsuario + " " + venta.seller?.apellidosUsuario || 'Sin vendedor',
         metodoPago: venta.paymentMethod,
