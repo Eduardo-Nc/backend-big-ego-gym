@@ -312,26 +312,35 @@ const deleteSale = async (req, res = response) => {
   }
 }
 
-const obtenerRangoFechas = (tipo) => {
+const obtenerRangoFechas = (tipo, fechaInicioManual, fechaFinManual) => {
   const timezone = 'America/Mexico_City';
-  const fin = moment().endOf('day');
   let inicio;
+  let fin;
 
-  switch (tipo) {
-    case 'diario':
-      inicio = moment().tz(timezone).startOf('day');
-      break;
-    case 'semanal':
-      inicio = moment().tz(timezone).startOf('week'); // Lunes
-      break;
-    case 'mensual':
-      inicio = moment().tz(timezone).startOf('month');
-      break;
-    case 'anual':
-      inicio = moment().tz(timezone).startOf('year');
-      break;
-    default:
-      throw new Error('Tipo de intervalo inválido');
+  if (fechaInicioManual && fechaFinManual) {
+    // Si se pasaron fechas manuales
+    inicio = moment.tz(fechaInicioManual, timezone).startOf('day');
+    fin = moment.tz(fechaFinManual, timezone).endOf('day');
+  } else {
+    // Si no se pasaron fechas manuales, usar el tipo
+    fin = moment.tz(timezone).endOf('day');
+
+    switch (tipo) {
+      case 'diario':
+        inicio = moment.tz(timezone).startOf('day');
+        break;
+      case 'semanal':
+        inicio = moment.tz(timezone).startOf('week'); // Lunes
+        break;
+      case 'mensual':
+        inicio = moment.tz(timezone).startOf('month');
+        break;
+      case 'anual':
+        inicio = moment.tz(timezone).startOf('year');
+        break;
+      default:
+        throw new Error('Tipo de intervalo inválido o faltan fechas manuales');
+    }
   }
 
   return { inicio: inicio.toDate(), fin: fin.toDate() };
@@ -340,8 +349,8 @@ const obtenerRangoFechas = (tipo) => {
 const createReport = async (req, res = response) => {
   try {
     const { tipo = 'diario', user = '', tel = '' } = req.body;
+    // '2025-07-01', '2025-07-01'
     const { inicio, fin } = obtenerRangoFechas(tipo);
-
 
     const nombreArchivo = `reporte_${Date.now()}`;
     const folderPath = path.join(__dirname, '../reportes');
@@ -433,15 +442,23 @@ const createReport = async (req, res = response) => {
     let values = [];
     let responsable = user;
     let telefono = tel;
-
+    // console.log(JSON.stringify(ventas))
 
     ventas.forEach(v => {
       totalVentas += v.total;
       v.items.forEach(item => {
-        if (item.itemType === 'products') productos += item.item.price;
-        if (item.itemType === 'membership') membresias += item.item.price;
+        if (item.itemType === 'products') {
+          productos += (item.quantity * item.item.price);
+        }
+        if (item.itemType === 'membership') {
+          membresias += item.item.price;
+        }
       });
     });
+    // console.log("total productos final ", productos)
+    // console.log("total membresias final ", membresias)
+    // console.log("totalVentas final ", totalVentas)
+
 
     // Agrupación según tipo
     if (tipo === 'diario' || tipo === 'semanal') {
