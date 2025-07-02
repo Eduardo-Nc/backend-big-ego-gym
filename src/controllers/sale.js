@@ -342,6 +342,7 @@ const createReport = async (req, res = response) => {
     const { tipo = 'diario', user = '', tel = '' } = req.body;
     const { inicio, fin } = obtenerRangoFechas(tipo);
 
+
     const nombreArchivo = `reporte_${Date.now()}`;
     const folderPath = path.join(__dirname, '../reportes');
 
@@ -520,7 +521,7 @@ const createReport = async (req, res = response) => {
 
     const checkInPorHora = bloques.map(b => {
       const total = checkins.filter(c => {
-        const h = moment(c.createdAt).hour();
+        const h = moment(c.createdAt).tz('America/Mexico_City').hour();
         if (b.inicio < b.fin) return h >= b.inicio && h < b.fin;
         return h >= b.inicio || h < b.fin; // Para el bloque noche
       }).length;

@@ -103,11 +103,23 @@ const updateProduct = async (req, res = response) => {
       delete dataToUpdate.image_url;
     }
 
-    // Primero actualizamos los datos normales (sin la foto)
+    // Traer producto actual antes de actualizar
+    const existingProduct = await Product.findById(id);
+    if (!existingProduct) {
+      return res.status(404).json({
+        ok: false,
+        msg: 'Producto no encontrado',
+      });
+    }
+
+    const previousStock = existingProduct.stock ?? 0;
+    const newStock = parseFloat(stock);
+
+    // Actualizar datos normales
     let resProduct = await Product.findByIdAndUpdate(id, {
       category,
       price: parseFloat(price),
-      stock: parseFloat(stock),
+      stock: newStock,
       description,
       name,
     }, {
@@ -115,14 +127,19 @@ const updateProduct = async (req, res = response) => {
       runValidators: true,
     });
 
-    if (!resProduct) {
-      return res.status(404).json({
-        ok: false,
-        msg: 'Producto no encontrado',
+    // Si el stock cambió, registrar StockLog
+    if (newStock !== previousStock) {
+      const StockLog = require('../models/StockLog'); // Asegúrate de importar bien tu modelo
+
+      await StockLog.create({
+        product: resProduct._id,
+        quantityChange: newStock - previousStock, // Diferencia
+        reason: 'manual_adjustment',
+        description: `Ajuste manual de stock de ${previousStock} a ${newStock}`
       });
     }
 
-    // Si viene archivo (desde un form con file)
+    // Procesar imagen si viene
     if (req.files && req.files.image_url) {
       const file = req.files.image_url;
       const imageUrl = await saveFileToCloudinary(
@@ -132,7 +149,7 @@ const updateProduct = async (req, res = response) => {
       );
 
       resProduct.image_url = imageUrl;
-      await resProduct.save(); // Guardamos con la nueva URL de la imagen
+      await resProduct.save(); // Guardamos con la nueva URL de imagen
     }
 
     return res.status(200).json({
@@ -149,6 +166,7 @@ const updateProduct = async (req, res = response) => {
     });
   }
 };
+
 
 
 const deleteProduct = async (req, res = response) => {
