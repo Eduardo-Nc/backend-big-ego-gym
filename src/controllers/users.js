@@ -73,7 +73,7 @@ const getUser = async (req, res = response) => {
 
 const registerCheckIn = async (userId) => {
     const now = new Date();
-    const minAllowedTime = new Date(now.getTime() - 10 * 60000); // 10 minutos antes
+    const minAllowedTime = new Date(now.getTime() - (2 * 60 * 60 * 1000)); //2 horas
 
     try {
         const checkInExistente = await CheckIn.findOne({
@@ -87,7 +87,7 @@ const registerCheckIn = async (userId) => {
         if (checkInExistente) {
             return {
                 ok: false,
-                msg: 'Ya existe un check-in reciente. Espera al menos 10 minutos.'
+                msg: 'Ya existe un check-in reciente. Espera al menos 2 horas.'
             };
         }
 
