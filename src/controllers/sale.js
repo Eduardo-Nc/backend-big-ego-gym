@@ -166,17 +166,41 @@ const createSale = async (req, res = response) => {
           const remainingTime = new Date(buyerUser.membershipEnd).getTime() - now.getTime();
           const oneDayInMs = 24 * 60 * 60 * 1000;
 
-          // Si faltan más de 1 día, no se permite
           if (remainingTime > oneDayInMs) {
             throw new Error('El usuario posee una membresía activa. Para adquirir una nueva, debe estar a un día o menos de su vencimiento');
           }
 
-          // Si faltan menos de 1 día, se suma desde el fin actual
           membershipStart = new Date(buyerUser.membershipEnd);
         }
 
-        // Sumar días desde membershipStart
-        membershipEnd = new Date(membershipStart.getTime() + durationDays * 24 * 60 * 60 * 1000);
+        if (subscription.typeSubscription.toLowerCase() === "semanal") {
+          // La membresía termina el sábado de esa semana
+          const dayOfWeek = membershipStart.getDay(); // domingo=0, lunes=1, ..., sábado=6
+
+          let daysToAdd;
+          if (dayOfWeek === 0) {
+            // Si compra en domingo, termina el sábado siguiente
+            daysToAdd = 6;
+          } else {
+            // Si compra lunes-sábado, termina este sábado
+            daysToAdd = 6 - dayOfWeek;
+          }
+
+          // Ajustar la hora a las 23:59:59
+          membershipEnd = new Date(
+            membershipStart.getFullYear(),
+            membershipStart.getMonth(),
+            membershipStart.getDate() + daysToAdd,
+            23, 59, 59
+          );
+
+        } else {
+          // Para otros tipos, sumar días
+          // Sumar días desde membershipStart
+          membershipEnd = new Date(
+            membershipStart.getTime() + durationDays * 24 * 60 * 60 * 1000
+          );
+        }
 
         // Enviar correo
         await membershipTemplate(
